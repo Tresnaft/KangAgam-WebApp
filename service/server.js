@@ -1,8 +1,11 @@
+import 'dotenv/config';
 import express from 'express';
 import mongoose from 'mongoose';
 import http from 'http';
 import { Server } from 'socket.io';
 import cors from 'cors';
+import topicsRouter from './src/routes/TopicRoutes.js';
+import entryRouter from './src/routes/EntryRoutes.js';
 
 // Express dan Socket.IO setup
 const app = express();
@@ -19,10 +22,19 @@ const PORT = process.env.PORT || 5000;
 app.use(cors());
 app.use(express.json());
 
+const uri = process.env.ATLAS_URI;
+mongoose.connect(uri);
+const connection = mongoose.connection;
+connection.once('open', () => {
+    console.log("MongoDB database connection established successfully");
+});
+
 // Tambahkan rute sederhana untuk testing
 app.get("/api", (req, res) => {
     res.json({ message: "Hello from service!" });
 });
+app.use('/api/topics', topicsRouter);
+app.use('/api/topics/:topicId/entries', entryRouter);
 
 // Jalankan server
 server.listen(PORT, () => {

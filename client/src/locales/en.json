@@ -1,0 +1,23 @@
+{
+  "translation": {
+    "welcomeMessage": "Please Select a Topic",
+    "languageLabel": "Language:",
+    "menuA": "Menu A",
+    "menuB": "Menu B",
+    "logoutButton": "Logout",
+    "quizButton": "Quiz",
+    "backButton": "Back",
+    "topics": {
+      "abjad": "Alphabet",
+      "angka": "Numbers",
+      "buah": "Fruits",
+      "binatang": "Animals",
+      "anggotaTubuh": "Body Parts",
+      "warna": "Colors",
+      "bentuk": "Shapes",
+      "profesi": "Professions",
+      "sayuran": "Vegetables",
+      "kuliner": "Culinary"
+    }
+  }
+}

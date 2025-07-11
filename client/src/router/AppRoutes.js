@@ -2,10 +2,11 @@ import React from 'react';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 
 // 1. Import komponen "penjaga" rute
-import { ProtectedRoutes, AdminRoute } from './ProtectedRoutes';
+import { ProtectedRoutes, AdminRoute } from './ProtectedRoutes'; 
 
 // 2. Import komponen Layout
 import UserLayout from '../components/layout/UserLayout';
+import AdminLayout from '../components/layout/AdminLayout';
 
 // 3. Import semua komponen Halaman (Pages)
 // Halaman Publik
@@ -19,7 +20,8 @@ import QuizPage from '../pages/QuizPage';
 
 // Halaman Admin
 import AdminDashboard from '../pages/admin/AdminDashboard';
-import AdminLayout from '../components/layout/AdminLayout';
+import ManageTopicsPage from '../pages/admin/ManageTopicsPage';
+import ManageWordsPage from '../pages/admin/ManageWordsPage';
 
 
 // Komponen untuk Halaman 404 Not Found
@@ -50,20 +52,22 @@ const AppRoutes = () => {
             <Route path="/home" element={<HomePage />} />
             <Route path="/topik/:topicId" element={<KosakataPage />} />
             <Route path="/quiz/:topicId" element={<QuizPage />} />
+            {/* Jika ada halaman user lain, tambahkan di sini */}
           </Route>
         </Route>
 
 
         {/* ====================================================== */}
-        {/* RUTE ADMIN - Dilindungi & Tanpa UserLayout            */}
+        {/* RUTE ADMIN - Dilindungi & Menggunakan Layout Konsisten */}
         {/* ====================================================== */}
         <Route path="/admin" element={<AdminRoute />}>
-          <Route element={<AdminLayout />}> {/* BUNGKUS DENGAN ADMIN LAYOUT */}
-              <Route index element={<AdminDashboard />} /> 
-              <Route path="dashboard" element={<AdminDashboard />} />
-              {/* Halaman admin lain akan otomatis punya sidebar */}
+          <Route element={<AdminLayout />}>
+            <Route index element={<AdminDashboard />} /> 
+            <Route path="dashboard" element={<AdminDashboard />} />
+            <Route path="manage-topics" element={<ManageTopicsPage />} />
+            <Route path="manage-topics/:topicId" element={<ManageWordsPage />} />
           </Route>
-      </Route>
+        </Route>
         
 
         {/* ====================================================== */}

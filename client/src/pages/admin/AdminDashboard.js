@@ -24,7 +24,8 @@ const AdminDashboard = () => {
 
     // Data dummy untuk kartu menu
     const menuData = [
-        { title: 'Kelola Topik & Kosakata', description: 'Tambah, ubah, hapus topik dan kosakata', icon: <BookOpenIcon />, to: '#' },
+        // Arahkan 'to' ke rute yang baru
+        { title: 'Kelola Topik & Kosakata', description: 'Tambah, ubah, hapus topik dan kosakata', icon: <BookOpenIcon />, to: '/admin/manage-topics' },
         { title: 'Kelola Admin', description: 'Tambah atau hapus akun administrator', icon: <UsersIcon />, to: '#' },
         { title: 'Statistik Pengguna', description: 'Lihat data dan grafik kunjungan', icon: <ChartBarIcon />, to: '#' },
     ];

@@ -28,6 +28,7 @@ mongoose.connect(uri);
 const connection = mongoose.connection;
 connection.once('open', () => {
     console.log("MongoDB database connection established successfully");
+    console.log(`Connected to database: '${connection.db.databaseName}'`);
 });
 
 // Tambahkan rute sederhana untuk testing

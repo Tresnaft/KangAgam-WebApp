@@ -41,7 +41,11 @@ export const createTopic = async (req, res) => {
 // @access Public
 export const getAllTopics = async (req, res) => {
     try {
-        const requestedLangCode = req.headers['accept-language'] || req.query.language || 'id';
+        const requestedLangCode = req.query.language || 'id';
+
+        console.log(`Mencari bahasa dengan kode: '${requestedLangCode}'`);
+        const allLangs = await Language.find({}); // Ambil SEMUA bahasa
+        console.log("Semua bahasa yang ditemukan di DB:", allLangs);
 
         const requestedLanguage = await Language.findOne({languageCode: requestedLangCode});
         const fallbackLanguage = await Language.findOne({languageCode: 'id'});

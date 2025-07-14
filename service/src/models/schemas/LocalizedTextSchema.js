@@ -4,8 +4,8 @@
     const LocalizedTextSchema = new Schema({
         // Mereferensikan ke ID dari dokumen bahasa
         lang: {
-            type: Schema.Types.ObjectId,
-            ref: 'Language',
+            type: String,
+            trim: true,
             required: true
         },
         // Nilai teks untuk bahasa tersebut

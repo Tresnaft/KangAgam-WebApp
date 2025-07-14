@@ -6,6 +6,7 @@ import { Server } from 'socket.io';
 import cors from 'cors';
 import topicsRouter from './src/routes/TopicRoutes.js';
 import entryRouter from './src/routes/EntryRoutes.js';
+import languageRouter from './src/routes/LanguageRoutes.js';
 
 // Express dan Socket.IO setup
 const app = express();
@@ -35,6 +36,7 @@ app.get("/api", (req, res) => {
 });
 app.use('/api/topics', topicsRouter);
 app.use('/api/topics/:topicId/entries', entryRouter);
+app.use('/api/languages', languageRouter);
 
 // Jalankan server
 server.listen(PORT, () => {

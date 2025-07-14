@@ -32,12 +32,10 @@ const KosakataPage = () => {
     const [isLoading, setIsLoading] = useState(true);
 
     useEffect(() => {
-        // Tandai waktu mulai saat fetch dimulai
         const startTime = Date.now();
 
         const fetchAllData = async () => {
             try {
-                // Ambil data detail topik dan data kosakata secara bersamaan
                 const topicDataPromise = getTopicById(topicId);
                 const entriesDataPromise = getEntriesByTopicId(topicId);
 
@@ -51,29 +49,23 @@ const KosakataPage = () => {
             } catch (error) {
                 console.error("Gagal mengambil data untuk halaman kosakata.", error);
             } finally {
-                // Hitung berapa lama proses fetch berlangsung
                 const elapsedTime = Date.now() - startTime;
-                const minDuration = 400; // Durasi minimum loading (dalam milidetik)
+                const minDuration = 400;
 
                 if (elapsedTime < minDuration) {
-                    // Jika fetch terlalu cepat, tunggu sisa waktunya
                     setTimeout(() => {
                         setIsLoading(false);
                     }, minDuration - elapsedTime);
                 } else {
-                    // Jika fetch sudah cukup lama, langsung hilangkan loading
                     setIsLoading(false);
                 }
             }
         };
 
-        // Selalu set loading ke true saat useEffect berjalan
         setIsLoading(true);
         fetchAllData();
-        
     }, [topicId]);
 
-    // Tampilkan loading indicator hanya berdasarkan state isLoading
     if (isLoading) {
         return <LoadingIndicator />;
     }
@@ -94,7 +86,7 @@ const KosakataPage = () => {
             exit="out"
             variants={pageVariants}
             transition={pageTransition}
-            className="absolute w-full"
+            className="relative w-full"
         >
             <PageHeader title={pageTitle}>
                 <div className='flex items-center gap-4'>
@@ -102,12 +94,12 @@ const KosakataPage = () => {
                         {t('quizButton')}
                     </Link>
                     <Link to="/home" className="text-sm text-gray-600 hover:text-black">
-                        &larr; {t('backButton')}
+                        ← {t('backButton')}
                     </Link>
                 </div>
             </PageHeader>
 
-            <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-8 gap-4">
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2 sm:gap-3 max-w-full mx-auto px-4">
                 {entries.map((entry) => {
                     const vocabToDisplay = 
                         entry.entryVocabularies.find(v => v.language.languageCode === i18n.language)?.vocab ||

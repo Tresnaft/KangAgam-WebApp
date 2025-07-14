@@ -19,15 +19,11 @@ const Navbar = ({ onMenuToggle, isMenuOpen }) => {
     };
 
     return (
-        // 3. Hapus semua kelas sticky & background dari sini.
-        //    Navbar sekarang hanya komponen biasa dengan padding vertikal dan horizontal.
-        <header className="flex items-center justify-between gap-4 py-4 px-4 sm:px-6 md:px-8 border-b border-gray-200">
-            
+        <header className="flex items-center justify-between gap-4 py-4 px-4 sm:px-6 md:px-8 border-b border-gray-200 bg-white">
             <Link to="/home">
                 <img src={logo} alt="Kang Agam Logo" className="h-9 sm:h-10 w-auto" />
             </Link>
             
-            {/* Navigasi untuk Desktop (tersembunyi di mobile) */}
             <nav className="hidden sm:flex items-center gap-3 sm:gap-4">
                 <a href="#" className="text-sm text-gray-600 hover:text-black font-medium">{t('menuA')}</a>
                 <a href="#" className="text-sm text-gray-600 hover:text-black font-medium">{t('menuB')}</a>
@@ -52,7 +48,6 @@ const Navbar = ({ onMenuToggle, isMenuOpen }) => {
                 </button>
             </nav>
 
-            {/* Tombol Hamburger (hanya terlihat di mobile) */}
             <div className="sm:hidden">
                 <button onClick={onMenuToggle} className="p-2 -mr-2 focus:outline-none z-50 relative" aria-label="Buka menu">
                     <div className="w-6 h-0.5 bg-gray-700 rounded-full transition-all duration-300" style={{ transform: isMenuOpen ? 'rotate(45deg) translate(4px, 4px)' : 'none' }}></div>

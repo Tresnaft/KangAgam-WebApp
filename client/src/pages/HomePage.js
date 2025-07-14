@@ -30,7 +30,6 @@ const HomePage = () => {
     const [isLoading, setIsLoading] = useState(true);
 
     useEffect(() => {
-        // Tandai waktu mulai saat fetch dimulai
         const startTime = Date.now();
 
         const fetchTopics = async () => {
@@ -40,33 +39,27 @@ const HomePage = () => {
             } catch (error) {
                 console.error("Gagal mengambil data topik di HomePage.", error);
             } finally {
-                // Hitung berapa lama proses fetch berlangsung
                 const elapsedTime = Date.now() - startTime;
-                const minDuration = 400; // Durasi minimum loading (dalam milidetik)
+                const minDuration = 400;
 
                 if (elapsedTime < minDuration) {
-                    // Jika fetch terlalu cepat, tunggu sisa waktunya
                     setTimeout(() => {
                         setIsLoading(false);
                     }, minDuration - elapsedTime);
                 } else {
-                    // Jika fetch sudah cukup lama, langsung hilangkan loading
                     setIsLoading(false);
                 }
             }
         };
 
-        // Selalu set loading ke true saat useEffect berjalan
         setIsLoading(true);
         fetchTopics();
-        
     }, [i18n.language]);
 
     const handleTopicClick = (topicId) => {
         navigate(`/topik/${topicId}`);
     };
     
-    // Tampilkan loading indicator hanya berdasarkan state isLoading
     if (isLoading) {
         return <LoadingIndicator />;
     }
@@ -78,12 +71,11 @@ const HomePage = () => {
             exit="out"
             variants={pageVariants}
             transition={pageTransition}
-            // Kelas 'absolute' adalah kunci untuk mencegah flicker/layout shift
-            className="absolute w-full"
+            className="relative w-full"
         >
             <PageHeader title={t('welcomeMessage')} />
             
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 sm:gap-6">
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2 sm:gap-3 max-w-full mx-auto px-4">
                 {topics.map((topic) => (
                     <TopicCard 
                         key={topic._id}

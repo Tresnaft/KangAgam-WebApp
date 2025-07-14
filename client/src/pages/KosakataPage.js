@@ -1,32 +1,62 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { useTranslation } from 'react-i18next'; // 1. Import hook `useTranslation`
+import { useTranslation } from 'react-i18next';
 
 import KosakataCard from '../components/ui/KosakataCard';
 import PageHeader from '../components/ui/PageHeader';
-
-// DATA SIMULASI (tidak berubah)
-const MOCK_DATA = {
-    'abjad': ['Aa', 'Bb', 'Cc', 'Dd', 'Ee', 'Ff', 'Gg', 'Hh', 'Ii', 'Jj', 'Kk', 'Ll', 'Mm', 'Nn', 'Oo', 'Pp', 'Qq', 'Rr', 'Ss', 'Tt', 'Uu', 'Vv', 'Ww', 'Xx', 'Yy', 'Zz'],
-    'angka': ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10'],
-    'buah': ['Apel', 'Jeruk', 'Mangga', 'Pisang', 'Anggur'],
-};
+import { getTopicById } from '../services/topicService';
+import { getEntriesByTopicId } from '../services/entryService'; // <-- 1. Import service baru
 
 const KosakataPage = () => {
-    const { topicId } = useParams(); 
-    const { t } = useTranslation(); // 2. Panggil hook `useTranslation`
+    const { topicId } = useParams();
+    const { t, i18n } = useTranslation();
 
-    const items = MOCK_DATA[topicId] || [];
-    
-    // 3. Ganti cara membuat judul. Sekarang kita ambil dari file terjemahan.
-    // `topicId` dari URL (contoh: "abjad") cocok dengan kunci di JSON kita.
-    const pageTitle = t(`topics.${topicId}`);
+    const [topic, setTopic] = useState(null);
+    const [entries, setEntries] = useState([]); // <-- 2. State untuk menampung kosakata
+    const [isLoading, setIsLoading] = useState(true);
+
+    useEffect(() => {
+        const fetchAllData = async () => {
+            try {
+                setIsLoading(true);
+                // Ambil data detail topik dan data kosakata secara bersamaan
+                const topicDataPromise = getTopicById(topicId);
+                const entriesDataPromise = getEntriesByTopicId(topicId);
+
+                const [topicResponse, entriesResponse] = await Promise.all([
+                    topicDataPromise,
+                    entriesDataPromise
+                ]);
+                
+                setTopic(topicResponse.topic);
+                setEntries(entriesResponse.entries); // <-- 3. Simpan data kosakata ke state
+            } catch (error) {
+                console.error("Gagal mengambil data untuk halaman kosakata.", error);
+            } finally {
+                setIsLoading(false);
+            }
+        };
+
+        fetchAllData();
+    }, [topicId]);
+
+    if (isLoading) {
+        return <div className="text-center">Memuat...</div>;
+    }
+
+    if (!topic) {
+        return <div className="text-center">Topik tidak ditemukan.</div>;
+    }
+
+    const pageTitle =
+        topic.topicName.find(n => n.lang === i18n.language)?.value ||
+        topic.topicName.find(n => n.lang === 'id')?.value ||
+        "Detail Topik";
 
     return (
         <>
             <PageHeader title={pageTitle}>
                 <div className='flex items-center gap-4'>
-                    {/* 4. Ganti teks tombol dengan fungsi t() */}
                     <Link to={`/quiz/${topicId}`} className="bg-blue-100 text-blue-800 font-bold px-4 py-2 rounded-lg text-sm hover:bg-blue-200">
                         {t('quizButton')}
                     </Link>
@@ -36,10 +66,21 @@ const KosakataPage = () => {
                 </div>
             </PageHeader>
 
+            {/* 4. Gunakan state 'entries' untuk me-render kartu */}
             <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-4">
-                {items.map((item, index) => (
-                    <KosakataCard key={index} content={item} />
-                ))}
+                {entries.map((entry) => {
+                    // Cari kosakata B.Indonesia dari setiap entri untuk ditampilkan
+                    const vocabIndonesia = entry.entryVocabularies.find(
+                        (v) => v.language.languageCode === 'id'
+                    )?.vocab;
+
+                    return (
+                        <KosakataCard 
+                            key={entry._id} 
+                            content={vocabIndonesia || 'N/A'} 
+                        />
+                    );
+                })}
             </div>
         </>
     );

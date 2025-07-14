@@ -1,28 +1,18 @@
 import React from 'react';
 
-// Kita tidak akan mengubah props-nya, jadi tetap terima imageUrl
 const TopicCard = ({ title, imageUrl, onClick }) => {
     return (
         <button 
             onClick={onClick}
-            // Tambahkan class bg-gray-200 sebagai warna default
-            className="relative w-full h-32 rounded-xl overflow-hidden group shadow-lg bg-gray-200 transform hover:-translate-y-1 transition-all duration-300"
+            // Ubah flex direction menjadi 'flex-col' untuk menangani multi-baris
+            className="w-full h-28 sm:h-32 rounded-2xl flex flex-col items-center justify-center p-2 text-center
+                       bg-white shadow-md border border-gray-200 
+                       transform hover:-translate-y-1 transition-all duration-300 ease-in-out
+                       focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
         >
-            {/* Beri komentar pada baris img ini untuk menonaktifkannya sementara */}
-            {/* <img 
-                src={imageUrl} 
-                alt={title} 
-                className="absolute inset-0 w-full h-full object-cover transition-transform duration-300 group-hover:scale-110" 
-            /> 
-            */}
-            
-            {/* Overlay Gelap */}
-            <div className="absolute inset-0 bg-black bg-opacity-40 group-hover:bg-opacity-50 transition-colors duration-300"></div>
-            
-            {/* Teks Judul di Tengah */}
-            <div className="relative h-full flex items-center justify-center p-2">
-                <h3 className="text-white text-lg font-bold tracking-wider text-center">{title}</h3>
-            </div>
+            <h3 className="text-gray-800 text-base sm:text-lg font-bold tracking-wide">
+                {title}
+            </h3>
         </button>
     );
 };

@@ -1,12 +1,11 @@
 import React from 'react';
 
-// Komponen ini menerima 'title' dan 'children' sebagai props.
-// 'children' akan merender apapun yang kita letakkan di antara <PageHeader>...</PageHeader>
 const PageHeader = ({ title, children }) => {
     return (
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6">
-            <h1 className="text-3xl font-bold text-gray-800">{title}</h1>
-            {/* 'children' akan dirender di sini, di sebelah kanan judul */}
+        // Tambahkan text-center dan sm:text-left untuk perataan responsif
+        <div className="flex flex-col sm:flex-row justify-between items-center text-center sm:text-left mb-6 md:mb-8">
+            {/* Tambahkan ukuran font responsif */}
+            <h1 className="text-3xl sm:text-4xl font-extrabold text-gray-800 tracking-tight">{title}</h1>
             <div className="mt-4 sm:mt-0">
                 {children}
             </div>

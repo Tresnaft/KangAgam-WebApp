@@ -22,3 +22,19 @@ export const getTopics = async (language = 'id') => {
     throw error;
   }
 };
+
+/**
+ * Mengambil satu topik berdasarkan ID.
+ * @param {string} topicId - ID dari topik.
+ * @returns {Promise<Object>} - Data satu topik dari API.
+ */
+export const getTopicById = async (topicId) => {
+  try {
+    // Membuat request ke GET /api/topics/:id
+    const response = await axios.get(`${API_URL}/topics/${topicId}`);
+    return response.data;
+  } catch (error) {
+    console.error(`Error fetching topic with id ${topicId}:`, error);
+    throw error;
+  }
+};

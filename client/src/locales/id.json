@@ -1,0 +1,23 @@
+{
+  "translation": {
+    "welcomeMessage": "Silahkan Pilih Topik",
+    "languageLabel": "Bahasa:",
+    "menuA": "Menu A",
+    "menuB": "Menu B",
+    "logoutButton": "Keluar",
+    "quizButton": "Kuis",
+    "backButton": "Kembali",
+    "topics": {
+      "abjad": "Abjad",
+      "angka": "Angka",
+      "buah": "Buah",
+      "binatang": "Binatang",
+      "anggotaTubuh": "Anggota Tubuh",
+      "warna": "Warna",
+      "bentuk": "Bentuk",
+      "profesi": "Profesi",
+      "sayuran": "Sayuran",
+      "kuliner": "Kuliner"
+    }
+  }
+}

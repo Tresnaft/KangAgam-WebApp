@@ -1,0 +1,23 @@
+{
+  "translation": {
+    "welcomeMessage": "Mangga Pilih Topik",
+    "languageLabel": "Basa:",
+    "menuA": "Menu A",
+    "menuB": "Menu B",
+    "logoutButton": "Kaluar",
+    "quizButton": "Kuis",
+    "backButton": "Balik",
+    "topics": {
+      "abjad": "Abjad",
+      "angka": "Angka",
+      "buah": "Buah",
+      "binatang": "Sasatoan",
+      "anggotaTubuh": "Anggota Awak",
+      "warna": "Warna",
+      "bentuk": "Wangun",
+      "profesi": "Pagawean",
+      "sayuran": "Sayuran",
+      "kuliner": "Kulinér"
+    }
+  }
+}

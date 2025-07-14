@@ -1,63 +1,99 @@
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
+import { motion } from 'framer-motion';
+
+// Import komponen UI dan Service
 import TopicCard from '../components/ui/TopicCard';
 import PageHeader from '../components/ui/PageHeader';
-import { getTopics } from '../services/topicService'; // <-- 1. Import service kita
+import LoadingIndicator from '../components/ui/LoadingIndicator';
+import { getTopics } from '../services/topicService';
+
+// Definisikan varian animasi di luar komponen
+const pageVariants = {
+  initial: { opacity: 0, y: 20 },
+  in: { opacity: 1, y: 0 },
+  out: { opacity: 0, y: -20 },
+};
+
+const pageTransition = {
+  type: 'tween',
+  ease: 'anticipate',
+  duration: 0.5,
+};
 
 const HomePage = () => {
     const { t, i18n } = useTranslation();
     const navigate = useNavigate();
     
-    // 2. Buat state untuk menampung data topik dari API
     const [topics, setTopics] = useState([]);
-    const [isLoading, setIsLoading] = useState(true); // State untuk loading
+    const [isLoading, setIsLoading] = useState(true);
 
-    // 3. Gunakan useEffect untuk mengambil data saat komponen dimuat
     useEffect(() => {
+        // Tandai waktu mulai saat fetch dimulai
+        const startTime = Date.now();
+
         const fetchTopics = async () => {
             try {
-                setIsLoading(true); // Mulai loading
-                // Ambil topik sesuai bahasa yang aktif di i18n
                 const data = await getTopics(i18n.language);
-                setTopics(data.topics); // Simpan data ke state
+                setTopics(data.topics);
             } catch (error) {
-                console.error("Gagal mengambil data topik di komponen Home.", error);
-                // Di sini Anda bisa menambahkan state untuk menampilkan pesan error di UI
+                console.error("Gagal mengambil data topik di HomePage.", error);
             } finally {
-                setIsLoading(false); // Selesai loading
+                // Hitung berapa lama proses fetch berlangsung
+                const elapsedTime = Date.now() - startTime;
+                const minDuration = 400; // Durasi minimum loading (dalam milidetik)
+
+                if (elapsedTime < minDuration) {
+                    // Jika fetch terlalu cepat, tunggu sisa waktunya
+                    setTimeout(() => {
+                        setIsLoading(false);
+                    }, minDuration - elapsedTime);
+                } else {
+                    // Jika fetch sudah cukup lama, langsung hilangkan loading
+                    setIsLoading(false);
+                }
             }
         };
 
+        // Selalu set loading ke true saat useEffect berjalan
+        setIsLoading(true);
         fetchTopics();
-    }, [i18n.language]); // <-- 4. Jalankan ulang useEffect jika bahasa berubah
+        
+    }, [i18n.language]);
 
     const handleTopicClick = (topicId) => {
-        // 5. Navigasi menggunakan _id dari topik
         navigate(`/topik/${topicId}`);
     };
     
-    // Tampilkan pesan loading
+    // Tampilkan loading indicator hanya berdasarkan state isLoading
     if (isLoading) {
-        return <div className="text-center">Memuat topik...</div>
+        return <LoadingIndicator />;
     }
 
     return (
-        <>
+        <motion.div
+            initial="initial"
+            animate="in"
+            exit="out"
+            variants={pageVariants}
+            transition={pageTransition}
+            // Kelas 'absolute' adalah kunci untuk mencegah flicker/layout shift
+            className="absolute w-full"
+        >
             <PageHeader title={t('welcomeMessage')} />
             
-            {/* 6. Gunakan state 'topics' untuk me-render TopicCard */}
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 sm:gap-6">
                 {topics.map((topic) => (
                     <TopicCard 
                         key={topic._id}
-                        title={topic.topicName} // Backend sudah memberikan nama yang diterjemahkan
-                        imageUrl={topic.topicImagePath} // Gunakan path gambar dari API
+                        title={topic.topicName}
+                        imageUrl={topic.topicImagePath}
                         onClick={() => handleTopicClick(topic._id)}
                     />
                 ))}
             </div>
-        </>
+        </motion.div>
     );
 };
 

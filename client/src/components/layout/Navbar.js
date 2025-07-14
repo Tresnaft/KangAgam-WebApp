@@ -1,17 +1,13 @@
-import React, { useState } from 'react'; // <-- Import useState
+import React from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { useNavigate, Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import logo from '../../assets/images/logo-kang-agam.png';
-import MobileMenu from './MobileMenu'; // <-- 1. Import komponen MobileMenu
 
-const Navbar = () => {
-    const [isMenuOpen, setIsMenuOpen] = useState(false); // <-- 2. State untuk mengontrol menu
+const Navbar = ({ onMenuToggle, isMenuOpen }) => {
     const { logout } = useAuth();
     const navigate = useNavigate();
     const { t, i18n } = useTranslation();
-
-    const toggleMenu = () => setIsMenuOpen(!isMenuOpen);
 
     const handleLogout = () => {
         logout();
@@ -23,51 +19,48 @@ const Navbar = () => {
     };
 
     return (
-        <>
-            <header className="flex items-center justify-between gap-4 pb-4 border-b border-gray-200">
-                <Link to="/home">
-                    <img src={logo} alt="Kang Agam Logo" className="h-9 sm:h-10 w-auto" />
-                </Link>
-                
-                {/* Navigasi untuk Desktop (hidden on mobile) */}
-                <nav className="hidden sm:flex items-center gap-3 sm:gap-4">
-                    <a href="#" className="text-sm text-gray-600 hover:text-black font-medium">{t('menuA')}</a>
-                    <a href="#" className="text-sm text-gray-600 hover:text-black font-medium">{t('menuB')}</a>
-                    <div className="flex items-center">
-                        <select
-                            id="bahasa-nav"
-                            name="bahasa"
-                            className="bg-gray-100 border-gray-300 rounded-lg pl-2 pr-7 py-1.5 text-sm focus:ring-1 focus:ring-indigo-500"
-                            onChange={changeLanguage}
-                            value={i18n.language}
-                        >
-                            <option value="id">Indonesia</option>
-                            <option value="en">Inggris</option>
-                            <option value="su">Sunda</option>
-                        </select>
-                    </div>
-                    <button
-                        onClick={handleLogout}
-                        className="bg-[#FCE0E0] text-[#D95353] text-sm font-bold px-4 py-2 rounded-lg hover:bg-red-200 transition-colors"
+        // 3. Hapus semua kelas sticky & background dari sini.
+        //    Navbar sekarang hanya komponen biasa dengan padding vertikal dan horizontal.
+        <header className="flex items-center justify-between gap-4 py-4 px-4 sm:px-6 md:px-8 border-b border-gray-200">
+            
+            <Link to="/home">
+                <img src={logo} alt="Kang Agam Logo" className="h-9 sm:h-10 w-auto" />
+            </Link>
+            
+            {/* Navigasi untuk Desktop (tersembunyi di mobile) */}
+            <nav className="hidden sm:flex items-center gap-3 sm:gap-4">
+                <a href="#" className="text-sm text-gray-600 hover:text-black font-medium">{t('menuA')}</a>
+                <a href="#" className="text-sm text-gray-600 hover:text-black font-medium">{t('menuB')}</a>
+                <div className="flex items-center">
+                    <select
+                        id="bahasa-nav-desktop"
+                        name="bahasa"
+                        className="bg-gray-100 border-gray-300 rounded-lg pl-2 pr-7 py-1.5 text-sm focus:ring-1 focus:ring-indigo-500"
+                        onChange={changeLanguage}
+                        value={i18n.language}
                     >
-                        {t('logoutButton')}
-                    </button>
-                </nav>
-
-                {/* 3. Tombol Hamburger (visible on mobile only) */}
-                <div className="sm:hidden">
-                    <button onClick={toggleMenu} className="p-2 focus:outline-none z-50">
-                        {/* Ini adalah ikon hamburger yang akan berubah menjadi 'X' */}
-                        <div className="w-6 h-[2px] bg-gray-700 mb-1.5 transition-all duration-300" style={{ transform: isMenuOpen ? 'rotate(45deg) translate(5px, 5px)' : 'none' }}></div>
-                        <div className="w-6 h-[2px] bg-gray-700 transition-all duration-300" style={{ opacity: isMenuOpen ? 0 : 1 }}></div>
-                        <div className="w-6 h-[2px] bg-gray-700 mt-1.5 transition-all duration-300" style={{ transform: isMenuOpen ? 'rotate(-45deg) translate(5px, -5px)' : 'none' }}></div>
-                    </button>
+                        <option value="id">Indonesia</option>
+                        <option value="en">Inggris</option>
+                        <option value="su">Sunda</option>
+                    </select>
                 </div>
-            </header>
+                <button
+                    onClick={handleLogout}
+                    className="bg-[#FCE0E0] text-[#D95353] text-sm font-bold px-4 py-2 rounded-lg hover:bg-red-200 transition-colors"
+                >
+                    {t('logoutButton')}
+                </button>
+            </nav>
 
-            {/* 4. Render MobileMenu di sini */}
-            <MobileMenu isOpen={isMenuOpen} onClose={toggleMenu} />
-        </>
+            {/* Tombol Hamburger (hanya terlihat di mobile) */}
+            <div className="sm:hidden">
+                <button onClick={onMenuToggle} className="p-2 -mr-2 focus:outline-none z-50 relative" aria-label="Buka menu">
+                    <div className="w-6 h-0.5 bg-gray-700 rounded-full transition-all duration-300" style={{ transform: isMenuOpen ? 'rotate(45deg) translate(4px, 4px)' : 'none' }}></div>
+                    <div className="w-6 h-0.5 bg-gray-700 rounded-full my-1.5 transition-all duration-300" style={{ opacity: isMenuOpen ? 0 : 1 }}></div>
+                    <div className="w-6 h-0.5 bg-gray-700 rounded-full transition-all duration-300" style={{ transform: isMenuOpen ? 'rotate(-45deg) translate(4px, -4px)' : 'none' }}></div>
+                </button>
+            </div>
+        </header>
     );
 };
 

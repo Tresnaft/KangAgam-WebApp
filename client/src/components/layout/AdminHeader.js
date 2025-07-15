@@ -14,8 +14,9 @@ const AdminHeader = ({ onMenuToggle }) => {
     const { user } = useAuth();
 
     return (
-        // Header ini hanya akan muncul di mobile (lg:hidden)
-        <header className="lg:hidden flex items-center justify-between p-4 bg-white shadow-md">
+        // 3. Hapus kelas 'sticky', 'top-0', dan 'z-10'.
+        //    Tambahkan 'flex-shrink-0' untuk memastikan ukurannya tidak menyusut.
+        <header className="lg:hidden flex items-center justify-between p-4 bg-white shadow-md flex-shrink-0">
             <Link to="/admin/dashboard">
                 <img src={logo} alt="Kang Agam Logo" className="h-9 w-auto" />
             </Link>

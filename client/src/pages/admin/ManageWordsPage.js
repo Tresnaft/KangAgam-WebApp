@@ -2,21 +2,16 @@ import React, { useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import WordDetailModal from '../../components/admin/WordDetailModal';
 import Pagination from '../../components/ui/Pagination';
+import WordFormModal from '../../components/admin/WordFormModal';
+import ConfirmDeleteModal from '../../components/admin/ConfirmDeleteModal';
 
 // --- DATA SIMULASI KOSAKATA ---
-const MOCK_WORDS_DATA = {
-    'abjad': [
-        { id: 1, indonesia: 'A', sunda: 'A', inggris: 'A' }, { id: 2, indonesia: 'B', sunda: 'B', inggris: 'B' },
-        { id: 3, indonesia: 'C', sunda: 'C', inggris: 'C' }, { id: 4, indonesia: 'D', sunda: 'D', inggris: 'D' },
-        { id: 5, indonesia: 'E', sunda: 'E', inggris: 'E' }, { id: 6, indonesia: 'F', sunda: 'F', inggris: 'F' },
-        { id: 7, indonesia: 'G', sunda: 'G', inggris: 'G' },
-    ],
-    'angka': [
-        { id: 1, indonesia: 'Satu', sunda: 'Hiji', inggris: 'One' }, { id: 2, indonesia: 'Dua', sunda: 'Dua', inggris: 'Two' },
-        { id: 3, indonesia: 'Tiga', sunda: 'Tilu', inggris: 'Three' }, { id: 4, indonesia: 'Empat', sunda: 'Opat', inggris: 'Four' },
-        { id: 5, indonesia: 'Lima', sunda: 'Lima', inggris: 'Five' }, { id: 6, indonesia: 'Enam', sunda: 'Genep', inggris: 'Six' },
-    ]
-};
+const initialWordsData = [
+    { id: 1, indonesia: 'A', sunda: 'A', inggris: 'A' }, { id: 2, indonesia: 'B', sunda: 'B', inggris: 'B' },
+    { id: 3, indonesia: 'C', sunda: 'C', inggris: 'C' }, { id: 4, indonesia: 'D', sunda: 'D', inggris: 'D' },
+    { id: 5, indonesia: 'E', sunda: 'E', inggris: 'E' }, { id: 6, indonesia: 'F', sunda: 'F', inggris: 'F' },
+    { id: 7, indonesia: 'G', sunda: 'G', inggris: 'G' },
+];
 // -----------------------------
 
 const ITEMS_PER_PAGE = 5;
@@ -26,13 +21,16 @@ const PlusIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-
 
 const ManageWordsPage = () => {
     const { topicId } = useParams();
+    const [wordsData, setWordsData] = useState(initialWordsData);
     const [searchTerm, setSearchTerm] = useState('');
-    const [isModalOpen, setIsModalOpen] = useState(false);
-    const [selectedWord, setSelectedWord] = useState(null);
     const [currentPage, setCurrentPage] = useState(1);
+    
+    // 1. Gunakan state terpisah untuk setiap modal
+    const [detailModalWord, setDetailModalWord] = useState(null);
+    const [formModalState, setFormModalState] = useState({ isOpen: false, mode: 'add', data: null });
+    const [deleteModalWord, setDeleteModalWord] = useState(null);
 
     const topicName = topicId.charAt(0).toUpperCase() + topicId.slice(1);
-    const wordsData = MOCK_WORDS_DATA[topicId] || [];
 
     const filteredWords = wordsData.filter(word =>
         word.indonesia.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -44,14 +42,31 @@ const ManageWordsPage = () => {
     const indexOfFirstItem = indexOfLastItem - ITEMS_PER_PAGE;
     const currentItems = filteredWords.slice(indexOfFirstItem, indexOfLastItem);
     const totalPages = Math.ceil(filteredWords.length / ITEMS_PER_PAGE);
-
-    const handleViewDetails = (word) => { setSelectedWord(word); setIsModalOpen(true); };
-    const handleCloseModal = () => { setIsModalOpen(false); setTimeout(() => setSelectedWord(null), 300); };
     const handlePageChange = (pageNumber) => setCurrentPage(pageNumber);
+
+    // --- Fungsi-fungsi untuk mengelola modal ---
+    const handleFormSubmit = (formData) => {
+        if (formModalState.mode === 'add') {
+            const newWord = { id: Date.now(), ...formData };
+            setWordsData(prev => [newWord, ...prev]);
+        } else if (formModalState.mode === 'edit') {
+            setWordsData(prev => prev.map(word => 
+                word.id === formModalState.data.id ? { ...word, ...formData } : word
+            ));
+        }
+        setFormModalState({ isOpen: false, mode: 'add', data: null });
+        setDetailModalWord(null);
+    };
+
+    const handleDeleteConfirm = () => {
+        setWordsData(prev => prev.filter(word => word.id !== deleteModalWord.id));
+        setDeleteModalWord(null);
+        setDetailModalWord(null);
+    };
 
     return (
         <div>
-            {/* Header Halaman (tidak ada perubahan) */}
+            {/* Header Halaman */}
             <div className="flex flex-col sm:flex-row justify-between items-center mb-8 gap-4">
                 <div>
                     <nav className="text-sm text-gray-500 mb-1">
@@ -66,24 +81,22 @@ const ManageWordsPage = () => {
                         <span className="absolute inset-y-0 left-0 flex items-center pl-3"><SearchIcon /></span>
                         <input type="text" placeholder="Cari kosakata..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="pl-10 pr-4 py-2.5 w-full border border-gray-300 rounded-lg"/>
                     </div>
-                    <button className="bg-green-500 text-white font-bold px-4 py-2.5 rounded-lg flex items-center gap-2 hover:bg-green-600 flex-shrink-0"><PlusIcon /><span>Tambah</span></button>
+                    <button onClick={() => setFormModalState({ isOpen: true, mode: 'add', data: null })} className="bg-green-500 text-white font-bold px-4 py-2.5 rounded-lg flex items-center gap-2 hover:bg-green-600 flex-shrink-0">
+                        <PlusIcon />
+                        <span>Tambah</span>
+                    </button>
                 </div>
             </div>
 
             {/* Tampilan Tabel untuk Desktop */}
             <div className="hidden lg:flex flex-col bg-white rounded-xl shadow-md min-h-[480px]">
                 <div className="overflow-x-auto flex-grow">
-                    {/* 1. Tambahkan kelas 'table-fixed' */}
                     <table className="w-full text-left table-fixed">
                         <thead className="bg-gray-100">
                             <tr>
-                                {/* 2. Berikan lebar spesifik untuk setiap kolom */}
-                                <th className="p-4 font-bold text-gray-600 w-[5%]">#</th>
-                                <th className="p-4 font-bold text-gray-600 w-[18%]">Indonesia</th>
-                                <th className="p-4 font-bold text-gray-600 w-[18%]">Sunda</th>
-                                <th className="p-4 font-bold text-gray-600 w-[18%]">Inggris</th>
-                                <th className="p-4 font-bold text-gray-600 w-[12%]">Gambar</th>
-                                <th className="p-4 font-bold text-gray-600 w-[12%]">Audio</th>
+                                <th className="p-4 font-bold text-gray-600 w-[5%]">#</th><th className="p-4 font-bold text-gray-600 w-[18%]">Indonesia</th>
+                                <th className="p-4 font-bold text-gray-600 w-[18%]">Sunda</th><th className="p-4 font-bold text-gray-600 w-[18%]">Inggris</th>
+                                <th className="p-4 font-bold text-gray-600 w-[12%]">Gambar</th><th className="p-4 font-bold text-gray-600 w-[12%]">Audio</th>
                                 <th className="p-4 font-bold text-gray-600 text-center w-[17%]">Action</th>
                             </tr>
                         </thead>
@@ -92,13 +105,12 @@ const ManageWordsPage = () => {
                                 <tr key={word.id} className="border-b border-gray-200 hover:bg-gray-50">
                                     <td className="p-4 text-gray-700">{indexOfFirstItem + index + 1}</td>
                                     <td className="p-4 text-gray-800 font-semibold truncate">{word.indonesia}</td>
-                                    <td className="p-4 text-gray-800 truncate">{word.sunda}</td>
-                                    <td className="p-4 text-gray-800 truncate">{word.inggris}</td>
+                                    <td className="p-4 text-gray-800 truncate">{word.sunda}</td><td className="p-4 text-gray-800 truncate">{word.inggris}</td>
                                     <td className="p-4"><button className="text-blue-600 hover:underline text-sm">Lihat Gambar</button></td>
                                     <td className="p-4"><button className="text-blue-600 hover:underline text-sm">Putar Audio</button></td>
                                     <td className="p-4 flex justify-center items-center gap-2">
-                                        <button className="bg-yellow-100 text-yellow-800 text-xs font-bold px-3 py-1.5 rounded-md hover:bg-yellow-200">Edit</button>
-                                        <button className="bg-red-100 text-red-800 text-xs font-bold px-3 py-1.5 rounded-md hover:bg-red-200">Delete</button>
+                                        <button onClick={() => setFormModalState({ isOpen: true, mode: 'edit', data: word })} className="bg-yellow-100 text-yellow-800 text-xs font-bold px-3 py-1.5 rounded-md hover:bg-yellow-200">Edit</button>
+                                        <button onClick={() => setDeleteModalWord(word)} className="bg-red-100 text-red-800 text-xs font-bold px-3 py-1.5 rounded-md hover:bg-red-200">Delete</button>
                                     </td>
                                 </tr>
                             ))}
@@ -119,7 +131,9 @@ const ManageWordsPage = () => {
                                 <p className="font-bold text-gray-800">{word.indonesia}</p>
                                 <p className="text-sm text-gray-500">{word.sunda} / {word.inggris}</p>
                             </div>
-                            <button onClick={() => handleViewDetails(word)} className="bg-blue-500 text-white text-sm font-bold px-4 py-2 rounded-lg hover:bg-blue-600">Detail</button>
+                            <button onClick={() => setDetailModalWord(word)} className="bg-blue-500 text-white text-sm font-bold px-4 py-2 rounded-lg hover:bg-blue-600">
+                                Detail
+                            </button>
                         </div>
                     ))}
                 </div>
@@ -128,7 +142,27 @@ const ManageWordsPage = () => {
                 </div>
             </div>
 
-            {isModalOpen && <WordDetailModal word={selectedWord} onClose={handleCloseModal} />}
+            {/* 2. Render semua modal dengan state masing-masing */}
+            <WordDetailModal 
+                word={detailModalWord} 
+                onClose={() => setDetailModalWord(null)}
+                onEdit={() => setFormModalState({ isOpen: true, mode: 'edit', data: detailModalWord })}
+                onDelete={() => setDeleteModalWord(detailModalWord)}
+            />
+            <WordFormModal
+                isOpen={formModalState.isOpen}
+                onClose={() => setFormModalState({ isOpen: false, mode: 'add', data: null })}
+                onSubmit={handleFormSubmit}
+                mode={formModalState.mode}
+                initialData={formModalState.data}
+            />
+            <ConfirmDeleteModal
+                isOpen={!!deleteModalWord}
+                onClose={() => setDeleteModalWord(null)}
+                onConfirm={handleDeleteConfirm}
+                title="Hapus Kosakata"
+                message={`Apakah Anda yakin ingin menghapus kosakata "${deleteModalWord?.indonesia}"?`}
+            />
         </div>
     );
 };

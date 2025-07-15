@@ -36,7 +36,8 @@ const Sidebar = () => {
                     <NavLink to="/admin/manage-topics" className={({ isActive }) => isActive ? activeLinkClasses : navLinkClasses}>
                         <BookIcon />
                     </NavLink>
-                    <NavLink to="#" className={navLinkClasses}>
+                    {/* PERBAIKAN DI SINI: Arahkan ke rute yang benar */}
+                    <NavLink to="/admin/manage-admins" className={({ isActive }) => isActive ? activeLinkClasses : navLinkClasses}>
                         <UsersIcon />
                     </NavLink>
                     <NavLink to="#" className={navLinkClasses}>

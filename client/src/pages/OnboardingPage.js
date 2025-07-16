@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
-import logo from '../assets/images/logo-kang-agam.png';
+const logo = '/assets/images/logo-kang-agam.png';
 
 const OnboardingPage = () => {
     const navigate = useNavigate();

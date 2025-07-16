@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
-import logo from '../../assets/images/logo-kang-agam.png'; // Pastikan path logo benar
+
+const logo = '/assets/images/logo-kang-agam.png';
 
 const AdminLoginPage = () => {
     const navigate = useNavigate();

@@ -1,6 +1,5 @@
 
 import mongoose from 'mongoose';
-import mongooseAutoPopulate from 'mongoose-autopopulate';
 const Schema = mongoose.Schema;
 
 const LearnerSchema = new Schema({
@@ -25,6 +24,4 @@ const LearnerSchema = new Schema({
     },
 });
 
-Schema.plugin(mongooseAutoPopulate);
-
-module.exports = mongoose.model("Learner", LearnerSchema);
+export default mongoose.model("Learner", LearnerSchema);

@@ -9,6 +9,7 @@ import swaggerUi from 'swagger-ui-express';
 
 import topicsRouter from './src/routes/TopicRoutes.js';
 import languageRouter from './src/routes/LanguageRoutes.js';
+import learnerRouter from './src/routes/LearnerRoutes.js';
 
 // Express dan Socket.IO setup
 const app = express();
@@ -45,9 +46,8 @@ app.get("/api", (req, res) => {
 // Rute ini menggunakan multer, jadi JANGAN gunakan express.json() di sini.
 // Biarkan multer yang menangani body parsing untuk rute ini.
 app.use('/api/topics', topicsRouter);
-
-// Rute ini hanya menerima JSON, jadi AMAN untuk menggunakan express.json() di sini.
-app.use('/api/languages', express.json(), languageRouter);
+app.use('/api/languages', languageRouter);
+app.use('/api/learners', learnerRouter);
 
 
 const options = {

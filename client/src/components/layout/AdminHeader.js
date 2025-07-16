@@ -1,7 +1,8 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
-import logo from '../../assets/images/logo-kang-agam.png';
+
+const logo = '/assets/images/logo-kang-agam.png';
 
 // Ikon untuk hamburger menu
 const MenuIcon = () => (

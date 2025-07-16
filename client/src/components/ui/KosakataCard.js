@@ -1,47 +1,69 @@
 import React, { useState } from 'react';
 
-const KosakataCard = ({ content }) => {
+// Komponen Kartu Kosakata dengan efek saat audio berjalan dan saat aktif
+const KosakataCard = ({ content, imageUrl, audioUrl, onCardClick, isActive }) => {
     const [isWiggling, setIsWiggling] = useState(false);
-
-    const colors = [
-        'bg-yellow-100 text-yellow-800',
-        'bg-green-100 text-green-800',
-        'bg-blue-100 text-blue-800',
-        'bg-red-100 text-red-800',
-        'bg-purple-100 text-purple-800',
-        'bg-teal-100 text-teal-800',
-    ];
-
-    const randomColor = colors[Math.floor(Math.random() * colors.length)]; 
+    const [isPlaying, setIsPlaying] = useState(false); // State untuk melacak status audio
 
     const handleClick = () => {
+        if (isPlaying || !audioUrl || audioUrl === '#') return;
+
+        if (onCardClick) {
+            onCardClick();
+        }
+
+        try {
+            const audio = new Audio(audioUrl);
+            
+            audio.onplay = () => setIsPlaying(true);
+            audio.onended = () => setIsPlaying(false);
+            audio.onerror = () => {
+                console.error("Gagal memuat atau memutar audio:", audioUrl);
+                setIsPlaying(false);
+            };
+
+            audio.play();
+        } catch (error) {
+            console.error("Gagal membuat objek Audio:", error);
+        }
+
         if (isWiggling) return;
-
         setIsWiggling(true);
-        console.log(`Memutar audio untuk: ${content}`);
-
         setTimeout(() => {
             setIsWiggling(false);
-        }, 500); 
+        }, 500);
     };
 
+    // FIX: Logika kelas CSS yang lebih canggih untuk menangani 3 state: normal, aktif, dan sedang diputar
+    const highlightClasses = isPlaying 
+        ? 'ring-4 ring-offset-2 ring-yellow-400 shadow-lg' // Efek glow saat audio berjalan (paling prioritas)
+        : isActive 
+        ? 'ring-2 ring-blue-500' // Efek sorot saat kartu aktif
+        : 'shadow-md'; // State normal
+
     return (
-        <button 
+        <div 
             onClick={handleClick}
             role="button"
             tabIndex={0}
-            onKeyDown={(e) => e.key === 'Enter' && handleClick()}
-            className={`w-full max-w-full flex flex-col items-center justify-center p-2 text-center
-                        bg-white shadow-md border border-gray-200 
-                        transform hover:-translate-y-1 transition-all duration-300 ease-in-out
-                        focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500
-                        h-24 sm:h-28 md:h-32
-                        ${isWiggling ? 'wiggle' : ''}`}
+            onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && handleClick()}
+            className={`group w-full bg-white rounded-2xl overflow-hidden cursor-pointer
+                        transform transition-all duration-300 hover:scale-105 active:scale-95
+                        ${isWiggling ? 'wiggle' : ''}
+                        ${highlightClasses}`} // Terapkan kelas dinamis di sini
         >
-            <h3 className="text-gray-800 text-base sm:text-lg font-bold tracking-wide line-clamp-2">
-                {content}
-            </h3>
-        </button>
+            <div className="w-full h-20 sm:h-24 bg-gray-100">
+                <img 
+                    src={imageUrl} 
+                    alt={content} 
+                    onError={(e) => { e.target.onerror = null; e.target.src='https://placehold.co/200x200/e2e8f0/4a5568?text=?' }}
+                    className="w-full h-full object-contain p-2 transition-transform duration-300 group-hover:scale-110" 
+                />
+            </div>
+            <div className="p-3 text-center bg-blue-100">
+                <p className="text-blue-800 font-bold text-lg sm:text-xl">{content}</p>
+            </div>
+        </div>
     );
 };
 

@@ -2,7 +2,8 @@ import React from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { useNavigate, Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import logo from '../../assets/images/logo-kang-agam.png';
+
+const logo = '/assets/images/logo-kang-agam.png';
 
 const Navbar = ({ onMenuToggle, isMenuOpen }) => {
     const { logout } = useAuth();

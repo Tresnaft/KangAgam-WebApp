@@ -10,6 +10,7 @@ import swaggerUi from 'swagger-ui-express';
 import topicsRouter from './src/routes/TopicRoutes.js';
 import entryRouter from './src/routes/EntryRoutes.js';
 import languageRouter from './src/routes/LanguageRoutes.js';
+import learnerRouter from './src/routes/LearnerRoutes.js';
 
 // Express dan Socket.IO setup
 const app = express();
@@ -41,6 +42,7 @@ app.get("/api", (req, res) => {
 app.use('/api/topics', topicsRouter);
 app.use('/api/topics/:topicId/entries', entryRouter);
 app.use('/api/languages', languageRouter);
+app.use('/api/learners', learnerRouter);
 
 const options = {
     definition: {

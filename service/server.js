@@ -8,7 +8,6 @@ import swaggerJSDoc from 'swagger-jsdoc';
 import swaggerUi from 'swagger-ui-express';
 
 import topicsRouter from './src/routes/TopicRoutes.js';
-import entryRouter from './src/routes/EntryRoutes.js';
 import languageRouter from './src/routes/LanguageRoutes.js';
 import learnerRouter from './src/routes/LearnerRoutes.js';
 
@@ -18,14 +17,19 @@ const server = http.createServer(app);
 const io = new Server(server, {
   cors: {
     origin: "http://localhost:3000",
-    methods: ["GET", "POST"]
+    methods: ["GET", "POST", "PUT", "DELETE"]
   }
 });
 
 const PORT = process.env.PORT || 5000;
 
 app.use(cors());
+
+// Middleware untuk mem-parsing body JSON dan URL-encoded
+// Ini harus ada sebelum pendaftaran rute
 app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+
 
 const uri = process.env.ATLAS_URI;
 mongoose.connect(uri);
@@ -35,37 +39,25 @@ connection.once('open', () => {
     console.log(`Connected to database: '${connection.db.databaseName}'`);
 });
 
-// Tambahkan rute sederhana untuk testing
-app.get("/api", (req, res) => {
-    res.json({ message: "Hello from service!" });
-});
+// --- PENDAFTARAN RUTE ---
 app.use('/api/topics', topicsRouter);
-app.use('/api/topics/:topicId/entries', entryRouter);
 app.use('/api/languages', languageRouter);
 app.use('/api/learners', learnerRouter);
 
-const options = {
-    definition: {
-        openapi: '3.0.0',
-        info: {
-            title: 'Kang Agam API Documentation',
-            version: '0.1.0',
-            description: 'API documentation for Kang Agam Web App',
-            contact: {
-                name: 'Tresh',
-                email: 'tresnaft.13@gmail.com'
-            },
-        },
 
-        servers: [
-            {
-                url: `http://localhost:${PORT}/`
-            }
-        ]
+const options = {
+  definition: {
+    openapi: '3.0.0',
+    info: {
+      title: 'Kang Agam API Documentation',
+      version: '0.1.0',
+      description: 'API documentation for Kang Agam Web App',
     },
-    apis: ['./src/routes/*.js'] // Path ke file yang berisi anotasi Swagger
+    servers: [ { url: `http://localhost:${PORT}/` } ]
+  },
+  apis: ['./src/routes/*.js']
 };
-const spacs = swaggerJSDoc(options)
+const spacs = swaggerJSDoc(options);
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(spacs));
 
 // Jalankan server

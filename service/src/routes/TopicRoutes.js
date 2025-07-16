@@ -1,29 +1,19 @@
 import express from 'express';
 import { createTopic, getAllTopics, getTopicById, updateTopic, deleteTopic } from '../controllers/TopicController.js';
 import entryRouter from './EntryRoutes.js';
+import topicUpload from '../middlewares/TopicUpload.js';
 
 const router = express.Router();
 
-
-// ==================================
-// RUTE UNTUK TOPIC
-// ==================================
-// Rute: /api/topics
 router.route('/')
     .get(getAllTopics)
-    .post(createTopic);
+    .post(topicUpload, createTopic);
 
-// Rute: /api/topics/:id
 router.route('/:id')
     .get(getTopicById)
-    .put(updateTopic) // Anda bisa menggunakan PUT atau PATCH
+    .put(topicUpload, updateTopic) // Terapkan middleware untuk update juga
     .delete(deleteTopic);
 
-// ==================================
-// PENERUSAN RUTE (FORWARDING)
-// ==================================
-// Untuk setiap rute yang cocok dengan pola /:topicId/entries,
-// teruskan request tersebut ke entryRouter.
 router.use('/:topicId/entries', entryRouter);
 
 export default router;

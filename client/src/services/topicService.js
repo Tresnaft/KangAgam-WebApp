@@ -1,40 +1,55 @@
 import axios from 'axios';
 
-// URL base dari backend service Anda
 const API_URL = 'http://localhost:5000/api';
 
-/**
- * Mengambil semua topik dari backend.
- * @param {string} language - Kode bahasa (misal: 'id', 'en', 'su')
- * @returns {Promise<Object>} - Data topik dari API.
- */
 export const getTopics = async (language = 'id') => {
   try {
-    // Membuat request ke GET /api/topics dengan parameter bahasa
     const response = await axios.get(`${API_URL}/topics`, {
       params: { language: language }
     });
-    // Mengembalikan data dari respons
     return response.data;
   } catch (error) {
     console.error('Error fetching topics:', error);
-    // Lemparkan error agar bisa ditangani oleh komponen yang memanggil
     throw error;
   }
 };
 
-/**
- * Mengambil satu topik berdasarkan ID.
- * @param {string} topicId - ID dari topik.
- * @returns {Promise<Object>} - Data satu topik dari API.
- */
+export const addTopic = async (formData) => {
+    try {
+        const response = await axios.post(`${API_URL}/topics`, formData);
+        return response.data;
+    } catch (error) {
+        console.error('Error adding topic:', error);
+        throw error;
+    }
+};
+
 export const getTopicById = async (topicId) => {
   try {
-    // Membuat request ke GET /api/topics/:id
     const response = await axios.get(`${API_URL}/topics/${topicId}`);
     return response.data;
   } catch (error) {
     console.error(`Error fetching topic with id ${topicId}:`, error);
     throw error;
   }
+};
+
+export const updateTopic = async (id, formData) => {
+    try {
+        const response = await axios.put(`${API_URL}/topics/${id}`, formData);
+        return response.data;
+    } catch (error) {
+        console.error(`Error updating topic ${id}:`, error);
+        throw error;
+    }
+};
+
+export const deleteTopic = async (id) => {
+    try {
+        const response = await axios.delete(`${API_URL}/topics/${id}`);
+        return response.data;
+    } catch (error) {
+        console.error(`Error deleting topic ${id}:`, error);
+        throw error;
+    }
 };

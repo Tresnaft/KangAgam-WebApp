@@ -8,42 +8,50 @@ const CloseIcon = () => (
 );
 
 const TopicFormModal = ({ isOpen, onClose, onSubmit, mode, initialData }) => {
-    const [formData, setFormData] = useState({ name: '', status: 'Published' });
+    const [name, setName] = useState('');
+    const [status, setStatus] = useState('Published');
+    const [imageFile, setImageFile] = useState(null);
 
     useEffect(() => {
-        if (mode === 'edit' && initialData) {
-            setFormData({ name: initialData.name, status: initialData.status });
-        } else {
-            setFormData({ name: '', status: 'Published' });
+        if (isOpen) {
+            if (mode === 'edit' && initialData) {
+                setName(initialData.topicName || '');
+                setStatus(initialData.status || 'Published');
+            } else {
+                setName('');
+                setStatus('Published');
+                setImageFile(null);
+            }
         }
     }, [isOpen, mode, initialData]);
 
-    const handleChange = (e) => {
-        const { name, value } = e.target;
-        setFormData(prev => ({ ...prev, [name]: value }));
-    };
-
     const handleSubmit = (e) => {
         e.preventDefault();
+        if (mode === 'add' && !imageFile) {
+            alert('Silakan pilih gambar untuk topik.');
+            return;
+        }
+        
+        const formData = new FormData();
+        formData.append('topicName', name);
+        formData.append('status', status);
+        if (imageFile) {
+            formData.append('topicImage', imageFile);
+        }
+        
         onSubmit(formData);
     };
 
     return (
         <AnimatePresence>
             {isOpen && (
-                // 1. Tambahkan 'backdrop-blur-sm' di sini
                 <motion.div
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    exit={{ opacity: 0 }}
+                    initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
                     className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4"
                     onClick={onClose}
                 >
                     <motion.div
-                        initial={{ scale: 0.9, opacity: 0 }}
-                        animate={{ scale: 1, opacity: 1 }}
-                        exit={{ scale: 0.9, opacity: 0 }}
-                        transition={{ duration: 0.2 }}
+                        initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }}
                         className="bg-white rounded-2xl shadow-xl w-full max-w-md"
                         onClick={(e) => e.stopPropagation()}
                     >
@@ -52,33 +60,26 @@ const TopicFormModal = ({ isOpen, onClose, onSubmit, mode, initialData }) => {
                                 <h2 className="text-xl font-bold text-gray-800">
                                     {mode === 'edit' ? 'Edit Topik' : 'Tambah Topik'}
                                 </h2>
-                                <button type="button" onClick={onClose} className="p-1 rounded-full hover:bg-gray-100">
-                                    <CloseIcon />
-                                </button>
+                                <button type="button" onClick={onClose} className="p-1 rounded-full hover:bg-gray-100"><CloseIcon /></button>
                             </header>
 
                             <main className="p-6 space-y-4">
                                 <div>
                                     <label htmlFor="name" className="block text-sm font-medium text-gray-600 mb-1">Nama Topik</label>
-                                    <input
-                                        type="text"
-                                        id="name"
-                                        name="name"
-                                        value={formData.name}
-                                        onChange={handleChange}
-                                        className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-300"
-                                        required
-                                    />
+                                    <input type="text" id="name" value={name} onChange={(e) => setName(e.target.value)}
+                                        className="w-full px-4 py-2.5 border border-gray-300 rounded-lg" required />
                                 </div>
+                                
+                                <div>
+                                    <label htmlFor="topicImage" className="block text-sm font-medium text-gray-600 mb-1">Gambar Topik (Opsional saat edit)</label>
+                                    <input type="file" id="topicImage" name="topicImage" accept="image/*" onChange={(e) => setImageFile(e.target.files[0])}
+                                        className="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-violet-50 file:text-violet-700 hover:file:bg-violet-100"/>
+                                </div>
+
                                 <div>
                                     <label htmlFor="status" className="block text-sm font-medium text-gray-600 mb-1">Status</label>
-                                    <select
-                                        id="status"
-                                        name="status"
-                                        value={formData.status}
-                                        onChange={handleChange}
-                                        className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-300"
-                                    >
+                                    <select id="status" value={status} onChange={(e) => setStatus(e.target.value)}
+                                        className="w-full px-4 py-2.5 border border-gray-300 rounded-lg">
                                         <option value="Published">Published</option>
                                         <option value="Draft">Draft</option>
                                     </select>
@@ -86,10 +87,7 @@ const TopicFormModal = ({ isOpen, onClose, onSubmit, mode, initialData }) => {
                             </main>
 
                             <footer className="p-6 bg-gray-50 rounded-b-2xl">
-                                <button
-                                    type="submit"
-                                    className="w-full bg-blue-500 text-white font-bold py-3 px-4 rounded-lg hover:bg-blue-600 transition-colors"
-                                >
+                                <button type="submit" className="w-full bg-blue-500 text-white font-bold py-3 px-4 rounded-lg hover:bg-blue-600">
                                     {mode === 'edit' ? 'Simpan Perubahan' : 'Tambah'}
                                 </button>
                             </footer>

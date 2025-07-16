@@ -6,6 +6,7 @@ import { motion } from 'framer-motion';
 import TopicCard from '../components/ui/TopicCard';
 import PageHeader from '../components/ui/PageHeader';
 import LoadingIndicator from '../components/ui/LoadingIndicator';
+import { getTopics } from '../services/topicService'; // 1. Pastikan service di-import
 
 // Varian animasi halaman
 const pageVariants = {
@@ -19,45 +20,33 @@ const pageTransition = {
   duration: 0.5,
 };
 
-// Data simulasi dengan path gambar
-const MOCK_TOPICS = [
-    { _id: 'abjad', topicName: 'Abjad', topicImagePath: '/assets/images/topic/abjad.png' },
-    { _id: 'angka', topicName: 'Angka', topicImagePath: '/assets/images/topic/angka.png' },
-    { _id: 'buah', topicName: 'Buah', topicImagePath: '/assets/images/topic/buah.png' },
-    { _id: 'binatang', topicName: 'Binatang', topicImagePath: '/assets/images/topic/binatang.png' },
-    { _id: 'anggotaTubuh', topicName: 'Anggota Tubuh', topicImagePath: '/assets/images/topic/anggota-tubuh.png' },
-    { _id: 'warna', topicName: 'Warna', topicImagePath: '/assets/images/topic/warna.png' },
-    { _id: 'bentuk', topicName: 'Bentuk', topicImagePath: '/assets/images/topic/bentuk.png' },
-    { _id: 'profesi', topicName: 'Profesi', topicImagePath: '/assets/images/topic/profesi.png' },
-    { _id: 'sayuran', topicName: 'Sayuran', topicImagePath: '/assets/images/topic/sayuran.png' },
-    { _id: 'kuliner', topicName: 'Kuliner', topicImagePath: '/assets/images/topic/kuliner.png' },
-];
-
-
 const HomePage = () => {
     const { t, i18n } = useTranslation();
     const navigate = useNavigate();
     
+    // 2. State untuk menampung data dari API dan status loading/error
     const [topics, setTopics] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
+    const [error, setError] = useState(null);
 
+    // 3. useEffect untuk mengambil data dari backend saat komponen dimuat atau bahasa berubah
     useEffect(() => {
-        const startTime = Date.now();
-        
-        const translatedTopics = MOCK_TOPICS.map(topic => ({
-            ...topic,
-            topicName: t(`topics.${topic._id}`)
-        }));
-        setTopics(translatedTopics);
+        const fetchTopics = async () => {
+            try {
+                setIsLoading(true);
+                const data = await getTopics(i18n.language);
+                setTopics(data.topics || []);
+                setError(null);
+            } catch (err) {
+                setError("Gagal memuat topik dari server.");
+                console.error(err);
+            } finally {
+                setIsLoading(false);
+            }
+        };
 
-        const elapsedTime = Date.now() - startTime;
-        const minDuration = 400; 
-
-        setTimeout(() => {
-            setIsLoading(false);
-        }, Math.max(0, minDuration - elapsedTime));
-        
-    }, [i18n.language, t]);
+        fetchTopics();
+    }, [i18n.language]); // Dependensi pada i18n.language agar data di-fetch ulang saat bahasa diganti
 
     const handleTopicClick = (topicId) => {
         navigate(`/topik/${topicId}`);
@@ -68,7 +57,6 @@ const HomePage = () => {
     }
 
     return (
-        // FIX: Mengubah padding horizontal (px) dan vertikal (py)
         <motion.div
             initial="initial"
             animate="in"
@@ -80,16 +68,22 @@ const HomePage = () => {
             <div className="max-w-7xl mx-auto">
                 <PageHeader title={t('welcomeMessage')} />
             
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 sm:gap-6">
-                    {topics.map((topic) => (
-                        <TopicCard 
-                            key={topic._id}
-                            title={topic.topicName}
-                            imageUrl={topic.topicImagePath}
-                            onClick={() => handleTopicClick(topic._id)}
-                        />
-                    ))}
-                </div>
+                {error ? (
+                    <p className="text-center text-red-500">{error}</p>
+                ) : (
+                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 sm:gap-6">
+                        {/* 4. Map data dari state 'topics', bukan dari MOCK_TOPICS */}
+                        {topics.map((topic) => (
+                            <TopicCard 
+                                key={topic._id}
+                                title={topic.topicName}
+                                // 5. Tambahkan URL base backend ke path gambar
+                                imageUrl={`http://localhost:5000${topic.topicImagePath}`}
+                                onClick={() => handleTopicClick(topic._id)}
+                            />
+                        ))}
+                    </div>
+                )}
             </div>
         </motion.div>
     );

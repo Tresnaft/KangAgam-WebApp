@@ -6,6 +6,8 @@ import { motion } from 'framer-motion';
 import KosakataCard from '../components/ui/KosakataCard';
 import PageHeader from '../components/ui/PageHeader';
 import LoadingIndicator from '../components/ui/LoadingIndicator';
+import { getEntriesByTopicId } from '../services/entryService';
+import { getTopicById } from '../services/topicService';
 
 // Varian animasi
 const pageVariants = {
@@ -19,50 +21,67 @@ const pageTransition = {
   duration: 0.5,
 };
 
-// Path aset diperbarui dengan nama folder yang sudah diubah (tanpa spasi)
-const MOCK_DATA = {
-    'abjad': [
-        { id: 'a', text: { id: 'A', en: 'A', su: 'A' }, image: '/assets/images/kosakata/abjad/abjad-a.png', audio: { id: '/assets/voice_over_kang_agam/voice_over_kang_agam_ID/abjad/A-i.mp3', en: '#', su: '#' } },
-        { id: 'b', text: { id: 'B', en: 'B', su: 'B' }, image: '/assets/images/kosakata/abjad/abjad-b.png', audio: { id: '/assets/voice_over_kang_agam/voice_over_kang_agam_ID/abjad/B-i.mp3', en: '#', su: '#' } },
-        { id: 'c', text: { id: 'C', en: 'C', su: 'C' }, image: '/assets/images/kosakata/abjad/abjad-c.png', audio: { id: '/assets/voice_over_kang_agam/voice_over_kang_agam_ID/abjad/C-i.mp3', en: '#', su: '#' } },
-    ],
-    'angka': [
-        { id: 'satu', text: { id: '1', en: 'One', su: 'Hiji' }, image: '/assets/images/kosakata/angka/angka-1.png', audio: { id: '/assets/voice_over_kang_agam/voice_over_kang_agam_ID/angka/1-i.mp3', en: '#', su: '#' } },
-        { id: 'dua', text: { id: '2', en: 'Two', su: 'Dua' }, image: '/assets/images/kosakata/angka/angka-2.png', audio: { id: '/assets/voice_over_kang_agam/voice_over_kang_agam_ID/angka/2-i.mp3', en: '#', su: '#' } },
-    ],
-};
-
 const KosakataPage = () => {
     const { topicId } = useParams();
-    const { t, i18n } = useTranslation();
+    // FIX 1: Destructure 't' untuk bisa digunakan
+    const { i18n, t } = useTranslation();
 
+    const [topicInfo, setTopicInfo] = useState(null);
     const [entries, setEntries] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
+    const [error, setError] = useState(null);
     const [activeEntry, setActiveEntry] = useState(null);
 
     useEffect(() => {
-        const startTime = Date.now();
-        const data = MOCK_DATA[topicId] || [];
-        setEntries(data);
-        if (data.length > 0) {
-            setActiveEntry(data[0]);
-        }
+        const fetchData = async () => {
+            try {
+                setIsLoading(true);
+                const [topicData, entriesData] = await Promise.all([
+                    getTopicById(topicId),
+                    getEntriesByTopicId(topicId)
+                ]);
 
-        const elapsedTime = Date.now() - startTime;
-        const minDuration = 400;
-        setTimeout(() => {
-            setIsLoading(false);
-        }, Math.max(0, minDuration - elapsedTime));
+                setTopicInfo(topicData.topic);
+                setEntries(entriesData.entries || []);
+
+                if (entriesData.entries && entriesData.entries.length > 0) {
+                    setActiveEntry(entriesData.entries[0]);
+                }
+                setError(null);
+            } catch (err) {
+                setError("Gagal memuat data dari server.");
+                console.error(err);
+            } finally {
+                setIsLoading(false);
+            }
+        };
+
+        fetchData();
     }, [topicId]);
 
     if (isLoading) {
         return <LoadingIndicator />;
     }
 
-    const pageTitle = t(`topics.${topicId}`);
+    // Helper untuk mencari vocab berdasarkan bahasa
+    const findVocab = (entry, lang) => {
+        if (!entry || !entry.entryVocabularies) return null;
+        return entry.entryVocabularies.find(v => v.language.languageCode === lang) || entry.entryVocabularies[0];
+    };
+
+    // FIX 2: Fungsi helper untuk mendapatkan nama topik yang benar sebagai string
+    const getTranslatedTopicName = () => {
+        if (!topicInfo || !Array.isArray(topicInfo.topicName)) {
+            return 'Memuat...';
+        }
+        const currentTranslation = topicInfo.topicName.find(t => t.lang === i18n.language);
+        if (currentTranslation) return currentTranslation.value;
+        
+        const fallback = topicInfo.topicName.find(t => t.lang === 'id') || topicInfo.topicName[0];
+        return fallback ? fallback.value : 'Judul Topik';
+    };
 
     return (
-        // FIX: Menambahkan padding atas (pt-4) untuk memberi jarak dari navbar
         <motion.div
             initial="initial"
             animate="in"
@@ -72,56 +91,67 @@ const KosakataPage = () => {
             className="p-4 sm:p-6 lg:p-8 pt-4"
         >
             <div className="max-w-7xl mx-auto">
-                <PageHeader title={pageTitle}>
+                {/* FIX 3: Gunakan fungsi helper untuk mendapatkan judul yang benar */}
+                <PageHeader title={getTranslatedTopicName()}>
                     <div className='flex items-center gap-4'>
-                        <Link to={`/quiz/${topicId}`} className="bg-blue-100 text-blue-800 font-bold px-4 py-2 rounded-lg text-sm hover:bg-blue-200">{t('quizButton')}</Link>
-                        <Link to="/home" className="text-sm text-gray-600 hover:text-black">&larr; {t('backButton')}</Link>
+                        <Link to={`/quiz/${topicId}`} className="bg-blue-100 text-blue-800 font-bold px-4 py-2 rounded-lg text-sm hover:bg-blue-200">Kuis</Link>
+                        {/* FIX 4: Gunakan fungsi 't' untuk menerjemahkan tombol kembali */}
+                        <Link to="/home" className="text-sm text-gray-600 hover:text-black">&larr; {t("backButton")}</Link>
                     </div>
                 </PageHeader>
             
-                <div className="lg:flex lg:gap-8">
-                    <div className="w-full lg:w-1/3">
-                        <div className="lg:sticky top-24">
-                            <div className="bg-gray-100 rounded-2xl shadow-inner overflow-hidden">
-                                <div className="aspect-w-1 aspect-h-1">
-                                    {activeEntry ? (
-                                        <img src={activeEntry.image} alt="Gambar kosakata" className="w-full h-full object-contain p-4" />
-                                    ) : (
-                                        <div className="flex items-center justify-center text-gray-400">Pilih kosakata</div>
-                                    )}
+                {error && <p className="text-center text-red-500">{error}</p>}
+
+                {!error && !isLoading && entries.length === 0 && (
+                    <div className="text-center py-20">
+                        <p className="text-xl text-gray-500">Kosakata belum tersedia, ditunggu yah {'>'}.{'<'}</p>
+                    </div>
+                )}
+                
+                {!error && entries.length > 0 && (
+                    <div className="lg:flex lg:gap-8">
+                        <div className="w-full lg:w-1/3">
+                            <div className="lg:sticky top-24">
+                                <div className="bg-gray-100 rounded-2xl shadow-inner overflow-hidden">
+                                    <div className="aspect-w-1 aspect-h-1">
+                                        {activeEntry ? (
+                                            <img src={`http://localhost:5000${activeEntry.entryImagePath.replace(/\\/g, '/')}`} alt="Gambar kosakata" className="w-full h-full object-contain p-4" />
+                                        ) : (
+                                            <div className="flex items-center justify-center text-gray-400">Pilih kosakata</div>
+                                        )}
+                                    </div>
                                 </div>
+                                {activeEntry && (
+                                    <div className="mt-4 text-center bg-white p-4 rounded-2xl shadow-md">
+                                        <p className="text-2xl font-bold text-gray-800">{findVocab(activeEntry, 'id')?.vocab}</p>
+                                        <p className="text-lg text-gray-600">{findVocab(activeEntry, 'su')?.vocab}</p>
+                                        <p className="text-lg text-gray-500 italic">{findVocab(activeEntry, 'en')?.vocab}</p>
+                                    </div>
+                                )}
                             </div>
-                            {activeEntry && (
-                                <div className="mt-4 text-center bg-white p-4 rounded-2xl shadow-md">
-                                    <p className="text-2xl font-bold text-gray-800">{activeEntry.text.id}</p>
-                                    <p className="text-lg text-gray-600">{activeEntry.text.su}</p>
-                                    <p className="text-lg text-gray-500 italic">{activeEntry.text.en}</p>
-                                </div>
-                            )}
+                        </div>
+
+                        <div className="w-full lg:w-2/3 mt-8 lg:mt-0">
+                            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                                {entries.map((entry) => {
+                                    const currentVocab = findVocab(entry, i18n.language);
+                                    if (!currentVocab) return null;
+
+                                    return (
+                                        <KosakataCard 
+                                            key={entry._id} 
+                                            content={currentVocab.vocab}
+                                            imageUrl={`http://localhost:5000${entry.entryImagePath.replace(/\\/g, '/')}`}
+                                            audioUrl={`http://localhost:5000${currentVocab.audioUrl.replace(/\\/g, '/')}`}
+                                            isActive={activeEntry && activeEntry._id === entry._id}
+                                            onCardClick={() => setActiveEntry(entry)}
+                                        />
+                                    );
+                                })}
+                            </div>
                         </div>
                     </div>
-
-                    <div className="w-full lg:w-2/3 mt-8 lg:mt-0">
-                        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                            {entries.map((entry) => {
-                                const currentLang = i18n.language;
-                                const vocabText = entry.text[currentLang] || entry.text.id;
-                                const audioUrl = entry.audio[currentLang] || entry.audio.id;
-
-                                return (
-                                    <KosakataCard 
-                                        key={entry.id} 
-                                        content={vocabText}
-                                        imageUrl={entry.image}
-                                        audioUrl={audioUrl}
-                                        isActive={activeEntry && activeEntry.id === entry.id}
-                                        onCardClick={() => setActiveEntry(entry)}
-                                    />
-                                );
-                            })}
-                        </div>
-                    </div>
-                </div>
+                )}
             </div>
         </motion.div>
     );

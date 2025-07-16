@@ -25,7 +25,6 @@ const VocabularySchema = new Schema({
     translation: [{
         type: Schema.Types.ObjectId,
         ref: 'Vocabulary',
-        autopopulate: true,
         default: null,
     }],
 });

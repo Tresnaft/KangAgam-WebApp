@@ -1,5 +1,127 @@
 import Entry from '../models/EntryModel.js';
 import Topic from '../models/TopicModel.js';
+import { createVocabulary } from './VocabularyController.js';
+import { cleanupUploadedFiles } from '../utils/fileUtils.js'; // Utility untuk menghapus file yang diunggah
+
+import mongoose from 'mongoose';
+import fs from 'fs'; // Diperlukan untuk menghapus file jika terjadi error
+import Vocabulary from '../models/VocabularyModel.js';
+import Language from '../models/LanguageModel.js';
+
+/**
+ * @desc    Menambahkan entri baru beserta gambar & file audionya
+ * @route   POST /api/topics/:topicId/entries
+ * @access  Private/Admin
+ */
+export const addEntry = async (req, res) => {
+    // Middleware `multer` sudah berjalan, hasilnya ada di `req.files` dan `req.body`
+
+    // 1. Ambil file dan data dari request
+    // `req.files` adalah objek karena kita menggunakan `.fields()` di multer
+    const entryImageFile = req.files.entryImage ? req.files.entryImage[0] : null;
+    const uploadedAudioFiles = req.files.audioFiles || [];
+
+    // Pastikan ada file yang diunggah sebelum mencoba mem-parsing body
+    if (!entryImageFile || uploadedAudioFiles.length === 0) {
+        return res.status(400).json({ message: 'File gambar entri dan minimal satu file audio harus diunggah.' });
+    }
+
+    // Gunakan transaksi untuk memastikan semua operasi database berhasil atau gagal bersamaan
+    const session = await mongoose.startSession();
+    session.startTransaction();
+
+    try {
+        // Parse data teks yang dikirim sebagai string JSON
+        const { entryVocabularies } = JSON.parse(req.body.entryData);
+        const { topicId } = req.params;
+
+        // Validasi input
+        if (!entryVocabularies || entryVocabularies.length !== uploadedAudioFiles.length) {
+            throw new Error('Jumlah data kosakata tidak cocok dengan jumlah file audio.');
+        }
+
+        // Cek keberadaan Topik
+        const topic = await Topic.findById(topicId).session(session);
+        if (!topic) {
+            throw new Error('Topik tidak ditemukan.');
+        }
+
+        // 2. Buat semua dokumen Kosakata
+        const vocabCreationPromises = entryVocabularies.map(async (voc, index) => {
+            const audioFile = uploadedAudioFiles[index];
+            const language = await Language.findOne({ languageCode: voc.languageCode }).session(session);
+            if (!language) {
+                throw new Error(`Bahasa dengan kode '${voc.languageCode}' tidak ditemukan.`);
+            }
+
+            // Buat dokumen Vocabulary dengan path audio dari multer
+            return Vocabulary.create([{
+                vocab: voc.vocab,
+                audioUrl: audioFile.path,
+                language: language._id,
+                translation: [] // Dibuat kosong dulu, akan diisi nanti
+            }], { session });
+        });
+
+        const createdVocabResults = await Promise.all(vocabCreationPromises);
+        const newVocabularies = createdVocabResults.flat();
+        const newVocabularyIds = newVocabularies.map(v => v._id);
+
+        // 3. Hubungkan terjemahan satu sama lain (jika lebih dari satu)
+        if (newVocabularyIds.length > 1) {
+            const linkPromises = newVocabularyIds.map(id =>
+                Vocabulary.updateOne(
+                    { _id: id },
+                    { $addToSet: { translation: { $each: newVocabularyIds.filter(otherId => !otherId.equals(id)) } } }
+                ).session(session)
+            );
+            await Promise.all(linkPromises);
+        }
+
+        // 4. Buat dokumen Entry utama
+        const newEntry = (await Entry.create([{
+            entryImagePath: entryImageFile.path, // Gunakan path gambar dari multer
+            entryVocabularies: newVocabularyIds,
+            topic: topicId
+        }], { session }))[0];
+
+        // 5. Tambahkan referensi entri baru ke dalam Topik
+        topic.topicEntries.push(newEntry._id);
+        await topic.save({ session });
+
+        // Jika semua langkah berhasil, commit transaksi untuk menyimpan perubahan permanen
+        await session.commitTransaction();
+        session.endSession();
+
+        // Ambil data yang sudah ter-populate untuk dikirim sebagai respons
+        const populatedEntry = await Entry.findById(newEntry._id);
+        res.status(201).json({
+            message: 'Entri berhasil dibuat!',
+            data: populatedEntry
+        });
+
+    } catch (error) {
+        // Jika ada error di salah satu langkah, batalkan semua operasi database
+        await session.abortTransaction();
+        
+        // ❗️ PENTING: Hapus file-file dengan aman
+        const filesToDelete = [];
+        if (entryImageFile) filesToDelete.push(entryImageFile);
+        if (uploadedAudioFiles.length > 0) filesToDelete.push(...uploadedAudioFiles);
+        
+        // Await the cleanup before ending the session and sending the response
+        await cleanupUploadedFiles(filesToDelete);
+
+        session.endSession();
+
+        console.error("Error saat membuat entri:", error);
+        res.status(500).json({
+            message: 'Terjadi kesalahan saat membuat entri.',
+            error: error.message
+        });
+    }
+};
+            
 
 /**
  * @desc Membuat entri baru untuk sebuah topik
@@ -42,21 +164,60 @@ export const createEntry = async (req, res) => {
 }
 
 /**
- * @desc Mengambil semua entri dari sebuah topik
- * @route GET /api/topics/:topicId/entries
- * @access Public
+ * @desc    Mengambil semua entri dari sebuah topik
+ * @route   GET /api/topics/:topicId/entries
+ * @access  Public
  */
 export const getEntriesByTopic = async (req, res) => {
     try {
         const { topicId } = req.params;
+
+        // First, check if the topic exists to provide a good error message
         const topic = await Topic.findById(topicId);
         if (!topic) {
             return res.status(404).json({ message: 'Topik tidak ditemukan' });
         }
 
+        // === FIX ===
+        // Directly query the Entry collection for entries matching the topicId
+        // This is the correct way to get the real, current list of entries.
+        const entries = await Entry.find({ topic: topicId });
+
         res.status(200).json({
             message: 'Berhasil mengambil entri',
-            entries: topic.topicEntries
+            entries: entries // Send back the real entries
+        });
+        
+    } catch (error) {
+        res.status(500).json({
+            message: 'Terjadi kesalahan saat mengambil entri',
+            error: error.message
+        });
+    }
+};
+
+/**
+ * @desc    Mengambil entri berdasarkan ID
+ * @route   GET /api/topics/:topicId/entries/:id
+ * @access  Public
+ */
+export const getEntryById = async (req, res) => {
+    try {
+        const { topicId, id } = req.params;
+
+        // Cek apakah topik ada
+        const topic = await Topic.findById(topicId);
+        if (!topic) {
+            return res.status(404).json({ message: 'Topik tidak ditemukan' });
+        }
+        // Cek apakah entri ada
+        const entry = await Entry.findById(id);
+        if (!entry) {
+            return res.status(404).json({ message: 'Entri tidak ditemukan' });
+        }
+        res.status(200).json({
+            message: 'Entri ditemukan',
+            entry
         });
     } catch (error) {
         res.status(500).json({
@@ -107,38 +268,82 @@ export const updateEntry = async (req, res) => {
 }
 
 /**
- * @desc Menghapus entri berdasarkan ID
- * @route DELETE /api/topics/:topicId/entries/:id
- * @access Private/Admin
+ * @desc    Menghapus entri, kosakata terkait, dan file-filenya
+ * @route   DELETE /api/topics/:topicId/entries/:id
+ * @access  Private/Admin
  */
 export const deleteEntry = async (req, res) => {
+    const { topicId, id } = req.params;
+
+    const session = await mongoose.startSession();
+    session.startTransaction();
+
     try {
-        const { topicId, id } = req.params;
-
-        const topic = await Topic.findById(topicId);
-        if (!topic) {
-            return res.status(404).json({ message: 'Topik tidak ditemukan' });
-        }
-        const entry = await Entry.findByIdAndDelete(id);
+        // 1. Find the entry to be deleted
+        const entry = await Entry.findById(id).session(session);
         if (!entry) {
-            return res.status(404).json({ message: 'Entri tidak ditemukan' });
+            throw new Error('Entri tidak ditemukan.');
         }
+
+        // 2. Collect all file paths to be deleted
+        const filesToDelete = [];
+        if (entry.entryImagePath) {
+            filesToDelete.push(path.resolve(entry.entryImagePath));
+        }
+
+        // 3. Find and delete associated vocabularies and collect their audio URLs
+        if (entry.entryVocabularies && entry.entryVocabularies.length > 0) {
+            const vocabularies = await Vocabulary.find({ 
+                _id: { $in: entry.entryVocabularies } 
+            }).session(session);
+
+            vocabularies.forEach(vocab => {
+                if (vocab.audioUrl) {
+                    filesToDelete.push(path.resolve(vocab.audioUrl));
+                }
+            });
+
+            // Delete all associated vocabulary documents
+            await Vocabulary.deleteMany({ 
+                _id: { $in: entry.entryVocabularies } 
+            }).session(session);
+        }
+
+        // 4. Delete the entry document itself
+        await Entry.findByIdAndDelete(id).session(session);
+
+        // 5. Remove the reference to the entry from the topic
+        await Topic.updateOne(
+            { _id: topicId },
+            { $pull: { topicEntries: id } }
+        ).session(session);
         
-        await Topic.findByIdAndUpdate(topicId, {
-            $pull: { topicEntries: id }
+        // If all DB operations are successful, commit the transaction
+        await session.commitTransaction();
+
+        // 6. Delete the actual files from storage AFTER the transaction is successful
+        filesToDelete.forEach(filePath => {
+            fs.unlink(filePath, (err) => {
+                if (err) {
+                    console.error(`Gagal menghapus file: ${filePath}`, err);
+                } else {
+                    console.log(`Berhasil menghapus file: ${filePath}`);
+                }
+            });
         });
 
-        await Entry.findByIdAndDelete(id);
-        res.status(200).json({
-            message: 'Entri berhasil dihapus',
-            entry
-        });
+        res.status(200).json({ message: 'Entri dan semua data terkait berhasil dihapus' });
+
     } catch (error) {
+        // If any error occurs, abort the transaction
+        await session.abortTransaction();
+        console.error("Error saat menghapus entri:", error);
         res.status(500).json({
-            message: 'Terjadi kesalahan saat menghapus entri',
+            message: 'Terjadi kesalahan saat menghapus entri.',
             error: error.message
         });
+    } finally {
+        // Always end the session
+        session.endSession();
     }
 };
-
-

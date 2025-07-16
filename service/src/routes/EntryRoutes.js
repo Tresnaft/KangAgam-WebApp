@@ -2,6 +2,7 @@ import express from 'express';
 import { addEntry, getEntriesByTopic, updateEntry, deleteEntry, getEntryById } from '../controllers/EntryController.js';
 import VocabularyRouter from './VocabularyRoutes.js';
 import entryUpload from '../middlewares/EntryUpload.js';
+import updateUpload from '../middlewares/UpdateEntryUpload.js';
 
 // PENTING: { mergeParams: true } memungkinkan router ini untuk mengakses
 // parameter dari router induk, dalam hal ini :topicId dari topicRoutes.
@@ -23,7 +24,7 @@ router.route('/')
 // Ini akan cocok dengan PUT /api/topics/:topicId/entries/:entryId
 // dan DELETE /api/topics/:topicId/entries/:entryId
 router.route('/:entryId')
-    .put(updateEntry)
+    .put(updateUpload, updateEntry)
     .delete(deleteEntry)
     .get(getEntryById);
 

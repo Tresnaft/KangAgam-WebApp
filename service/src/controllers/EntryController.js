@@ -5,6 +5,7 @@ import { cleanupUploadedFiles } from '../utils/fileUtils.js'; // Utility untuk m
 
 import mongoose from 'mongoose';
 import fs from 'fs'; // Diperlukan untuk menghapus file jika terjadi error
+import path from 'path'; // Diperlukan untuk mengelola path file
 import Vocabulary from '../models/VocabularyModel.js';
 import Language from '../models/LanguageModel.js';
 
@@ -227,60 +228,136 @@ export const getEntryById = async (req, res) => {
     }
 };
 
-/** 
- * @desc Mengupdate entri berdasarkan ID
- * @route PUT /api/topics/:topicId/entries/:id
- * @access Private/Admin
+/**
+ * @desc    Mengupdate entri dengan metode 'findByIdAndUpdate' yang lebih andal.
+ * @route   PUT /api/entries/:entryId
+ * @access  Private/Admin
  */
 export const updateEntry = async (req, res) => {
+    const session = await mongoose.startSession();
+    session.startTransaction();
+
     try {
-        const { topicId, id } = req.params;
-        const { entryName, entryImagePath } = req.body;
+        console.log('Isi dari req.files:', req.files);
+        const { entryId } = req.params;
+        const existingEntry = await Entry.findById(entryId).session(session);
+        if (!existingEntry) throw new Error('Entri tidak ditemukan.');
 
-        if (!entryName || !entryImagePath) {
-            return res.status(400).json({ message: 'Nama entri dan gambar entri harus diisi' });
+        const { entryVocabularies: newVocabData } = JSON.parse(req.body.entryData);
+        const newImageFile = req.files?.entryImage?.[0];
+        const audioFiles = req.files?.audioFiles || [];
+        
+        const finalVocabularyIds = [];
+        const oldFilesToDelete = [];
+
+        // --- 1. Proses Semua Kosakata ---
+        for (const vocData of newVocabData) {
+            if (vocData._id) {
+                // Vocab sudah ada, update
+                const vocabToUpdate = await Vocabulary.findById(vocData._id).session(session);
+                if (!vocabToUpdate) continue;
+
+                vocabToUpdate.vocab = vocData.vocab;
+
+                if (vocData.newAudioIndex !== undefined) {
+                    const audioFile = audioFiles[vocData.newAudioIndex];
+                    if (!audioFile) throw new Error(`newAudioIndex ${vocData.newAudioIndex} tidak valid.`);
+                    
+                    if (vocabToUpdate.audioUrl) oldFilesToDelete.push(vocabToUpdate.audioUrl);
+                    vocabToUpdate.audioUrl = audioFile.path;
+                }
+                
+                await vocabToUpdate.save({ session });
+                finalVocabularyIds.push(vocabToUpdate._id);
+
+            } else {
+                // Vocab baru, buat
+                const language = await Language.findOne({ languageCode: vocData.languageCode }).session(session);
+                if (!language) throw new Error(`Bahasa '${vocData.languageCode}' tidak ditemukan.`);
+
+                const audioFile = audioFiles[vocData.newAudioIndex];
+                if (!audioFile) throw new Error(`Vocab baru '${vocData.vocab}' tidak memiliki file audio.`);
+
+                const newVocab = await Vocabulary.create([{
+                    vocab: vocData.vocab, audioUrl: audioFile.path, language: language._id, translation: []
+                }], { session });
+                
+                finalVocabularyIds.push(newVocab[0]._id);
+            }
+        }
+        
+        // --- 2. Link Terjemahan & Hapus Vocab Yatim ---
+        const allVocabIds = finalVocabularyIds.map(id => new mongoose.Types.ObjectId(id));
+        if (allVocabIds.length > 1) {
+            await Promise.all(allVocabIds.map(id =>
+                Vocabulary.updateOne({ _id: id }, { $set: { translation: allVocabIds.filter(otherId => !otherId.equals(id)) } }, { session })
+            ));
         }
 
-        const topic = await Topic.findById(topicId);
-        if (!topic) {
-            return res.status(404).json({ message: 'Topik tidak ditemukan' });
+        const oldVocabularyIds = existingEntry.entryVocabularies.map(v => v._id.toString());
+        const newVocabularyIdsStr = allVocabIds.map(id => id.toString());
+        const vocabIdsToRemove = oldVocabularyIds.filter(id => !newVocabularyIdsStr.includes(id));
+        
+        if (vocabIdsToRemove.length > 0) {
+            const vocabsToDelete = await Vocabulary.find({ _id: { $in: vocabIdsToRemove } }).session(session);
+            vocabsToDelete.forEach(v => { if (v.audioUrl) oldFilesToDelete.push(v.audioUrl) });
+            await Vocabulary.deleteMany({ _id: { $in: vocabIdsToRemove } }).session(session);
         }
 
-        const entry = await Entry.findByIdAndUpdate(id, {
-            entryName,
-            entryImagePath
-        }, { new: true });
-
-        if (!entry) {
-            return res.status(404).json({ message: 'Entri tidak ditemukan' });
+        // ==================== PERUBAHAN UTAMA DI SINI ====================
+        // --- 3. Persiapkan & Terapkan Update pada Entry menggunakan findByIdAndUpdate ---
+        
+        const updates = { entryVocabularies: allVocabIds };
+        if (newImageFile) {
+            if (existingEntry.entryImagePath) {
+                oldFilesToDelete.push(existingEntry.entryImagePath);
+            }
+            updates.entryImagePath = newImageFile.path;
         }
+
+        const updatedEntry = await Entry.findByIdAndUpdate(
+            entryId,
+            { $set: updates },
+            { new: true, session }
+        );
+        // ===============================================================
+        
+        await session.commitTransaction();
+        oldFilesToDelete.forEach(filePath => {
+            if (fs.existsSync(filePath)) fs.unlink(filePath, (err) => { if (err) console.error(err) });
+        });
 
         res.status(200).json({
-            message: 'Entri berhasil diperbarui',
-            entry
+            message: 'Entri berhasil diperbarui.',
+            data: await Entry.findById(updatedEntry._id)
         });
+
     } catch (error) {
-        res.status(500).json({
-            message: 'Terjadi kesalahan saat memperbarui entri',
-            error: error.message
-        });
+        await session.abortTransaction();
+        if (req.files) {
+            const allFiles = [...(req.files.entryImage || []), ...(req.files.audioFiles || [])];
+            allFiles.forEach(file => { if (fs.existsSync(file.path)) fs.unlinkSync(file.path) });
+        }
+        res.status(500).json({ message: 'Terjadi kesalahan saat memperbarui entri.', error: error.message });
+    } finally {
+        session.endSession();
     }
-}
+};
 
 /**
  * @desc    Menghapus entri, kosakata terkait, dan file-filenya
- * @route   DELETE /api/topics/:topicId/entries/:id
+ * @route   DELETE /api/topics/:topicId/entries/:entryId
  * @access  Private/Admin
  */
 export const deleteEntry = async (req, res) => {
-    const { topicId, id } = req.params;
+    const { topicId, entryId } = req.params;
 
     const session = await mongoose.startSession();
     session.startTransaction();
 
     try {
         // 1. Find the entry to be deleted
-        const entry = await Entry.findById(id).session(session);
+        const entry = await Entry.findById(entryId).session(session);
         if (!entry) {
             throw new Error('Entri tidak ditemukan.');
         }
@@ -310,12 +387,12 @@ export const deleteEntry = async (req, res) => {
         }
 
         // 4. Delete the entry document itself
-        await Entry.findByIdAndDelete(id).session(session);
+        await Entry.findByIdAndDelete(entryId).session(session);
 
         // 5. Remove the reference to the entry from the topic
         await Topic.updateOne(
             { _id: topicId },
-            { $pull: { topicEntries: id } }
+            { $pull: { topicEntries: entryId } }
         ).session(session);
         
         // If all DB operations are successful, commit the transaction

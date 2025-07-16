@@ -13,7 +13,6 @@ const VocabularySchema = new Schema({
         type: String,
         required: [true, 'Kosakata tidak boleh kosong'],
         trim: true,
-        unique: true,
         minlength: 1,
         maxlength: 100,
     },

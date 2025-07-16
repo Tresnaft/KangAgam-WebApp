@@ -102,9 +102,9 @@ const ManageTopicsPage = () => {
                             <thead className="bg-gray-100">
                                 <tr>
                                     <th className="p-4 font-bold text-gray-600 w-[5%]">#</th>
-                                    <th className="p-4 font-bold text-gray-600 w-[40%]">Nama Topik</th>
-                                    <th className="p-4 font-bold text-gray-600 w-[25%]">Total Kosakata</th>
-                                    <th className="p-4 font-bold text-gray-600 text-center w-[30%]">Action</th>
+                                    <th className="p-4 font-bold text-gray-600 w-[35%]">Nama Topik</th>
+                                    <th className="p-4 font-bold text-gray-600 w-[20%]">Total Kosakata</th>
+                                    <th className="p-4 font-bold text-gray-600 text-center w-[40%]">Action</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -114,6 +114,13 @@ const ManageTopicsPage = () => {
                                         <td className="p-4 text-gray-800 font-semibold truncate">{topic.topicName || 'Tanpa Nama'}</td>
                                         <td className="p-4 text-gray-700">{topic.topicEntries.length}</td>
                                         <td className="p-4 flex justify-center items-center gap-2">
+                                            {/* FIX: Menambahkan kembali tombol Kosakata */}
+                                            <Link 
+                                                to={`/admin/manage-topics/${topic._id}`}
+                                                className="bg-blue-100 text-blue-800 text-xs font-bold px-3 py-1.5 rounded-md hover:bg-blue-200"
+                                            >
+                                                Kosakata
+                                            </Link>
                                             <button onClick={() => setFormModalState({ isOpen: true, mode: 'edit', data: topic })} className="bg-yellow-100 text-yellow-800 text-xs font-bold px-3 py-1.5 rounded-md hover:bg-yellow-200">Edit</button>
                                             <button onClick={() => setDeleteModalTopic(topic)} className="bg-red-100 text-red-800 text-xs font-bold px-3 py-1.5 rounded-md hover:bg-red-200">Delete</button>
                                         </td>

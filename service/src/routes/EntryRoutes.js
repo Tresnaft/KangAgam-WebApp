@@ -4,30 +4,20 @@ import VocabularyRouter from './VocabularyRoutes.js';
 import entryUpload from '../middlewares/EntryUpload.js';
 import updateUpload from '../middlewares/UpdateEntryUpload.js';
 
-// PENTING: { mergeParams: true } memungkinkan router ini untuk mengakses
-// parameter dari router induk, dalam hal ini :topicId dari topicRoutes.
 const router = express.Router({ mergeParams: true });
 
-// ==================================
-// RUTE UNTUK ENTRI
-// ==================================
-// Catatan: Path di sini relatif terhadap /api/topics/:topicId/entries
-
-// Rute: /
-// Ini akan cocok dengan POST /api/topics/:topicId/entries
-// dan GET /api/topics/:topicId/entries
+// Rute untuk /api/topics/:topicId/entries
 router.route('/')
     .post(entryUpload, addEntry)
     .get(getEntriesByTopic);
 
-// Rute: /:entryId
-// Ini akan cocok dengan PUT /api/topics/:topicId/entries/:entryId
-// dan DELETE /api/topics/:topicId/entries/:entryId
+// Rute untuk /api/topics/:topicId/entries/:entryId
 router.route('/:entryId')
-    .put(updateUpload, updateEntry)
-    .delete(deleteEntry)
-    .get(getEntryById);
+    .get(getEntryById)
+    .put(updateUpload, updateEntry) // Terapkan middleware upload untuk update
+    .delete(deleteEntry);
 
+// Rute untuk kosakata di dalam entri
 router.use('/:entryId/vocabulary', VocabularyRouter);
 
 export default router;

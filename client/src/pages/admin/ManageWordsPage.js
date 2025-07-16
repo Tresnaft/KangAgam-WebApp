@@ -1,18 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import WordDetailModal from '../../components/admin/WordDetailModal';
 import Pagination from '../../components/ui/Pagination';
 import WordFormModal from '../../components/admin/WordFormModal';
 import ConfirmDeleteModal from '../../components/admin/ConfirmDeleteModal';
-
-// --- DATA SIMULASI KOSAKATA ---
-const initialWordsData = [
-    { id: 1, indonesia: 'A', sunda: 'A', inggris: 'A' }, { id: 2, indonesia: 'B', sunda: 'B', inggris: 'B' },
-    { id: 3, indonesia: 'C', sunda: 'C', inggris: 'C' }, { id: 4, indonesia: 'D', sunda: 'D', inggris: 'D' },
-    { id: 5, indonesia: 'E', sunda: 'E', inggris: 'E' }, { id: 6, indonesia: 'F', sunda: 'F', inggris: 'F' },
-    { id: 7, indonesia: 'G', sunda: 'G', inggris: 'G' },
-];
-// -----------------------------
+import { getEntriesByTopicId, addEntry, updateEntry, deleteEntry } from '../../services/entryService';
+import { getTopicById } from '../../services/topicService';
 
 const ITEMS_PER_PAGE = 5;
 
@@ -21,21 +14,49 @@ const PlusIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-
 
 const ManageWordsPage = () => {
     const { topicId } = useParams();
-    const [wordsData, setWordsData] = useState(initialWordsData);
+    const [topicName, setTopicName] = useState('');
+    const [wordsData, setWordsData] = useState([]);
+    const [isLoading, setIsLoading] = useState(true);
+    const [error, setError] = useState(null);
+
     const [searchTerm, setSearchTerm] = useState('');
     const [currentPage, setCurrentPage] = useState(1);
     
-    // 1. Gunakan state terpisah untuk setiap modal
     const [detailModalWord, setDetailModalWord] = useState(null);
     const [formModalState, setFormModalState] = useState({ isOpen: false, mode: 'add', data: null });
     const [deleteModalWord, setDeleteModalWord] = useState(null);
 
-    const topicName = topicId.charAt(0).toUpperCase() + topicId.slice(1);
+    const fetchData = async () => {
+        try {
+            setIsLoading(true);
+            const [topicInfo, entriesData] = await Promise.all([
+                getTopicById(topicId),
+                getEntriesByTopicId(topicId)
+            ]);
+            
+            const mainTopicName = topicInfo.topic.topicName.find(t => t.lang === 'id')?.value || 'Topik';
+            setTopicName(mainTopicName);
+            setWordsData(entriesData.entries || []);
+            setError(null);
+        } catch (err) {
+            setError("Gagal memuat data kosakata.");
+        } finally {
+            setIsLoading(false);
+        }
+    };
 
-    const filteredWords = wordsData.filter(word =>
-        word.indonesia.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        word.sunda.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        word.inggris.toLowerCase().includes(searchTerm.toLowerCase())
+    useEffect(() => {
+        fetchData();
+    }, [topicId]);
+
+    const findVocab = (entry, lang) => {
+        if (!entry || !entry.entryVocabularies) return 'N/A';
+        const vocab = entry.entryVocabularies.find(v => v.language.languageCode === lang);
+        return vocab ? vocab.vocab : 'N/A';
+    };
+
+    const filteredWords = wordsData.filter(entry =>
+        findVocab(entry, 'id').toLowerCase().includes(searchTerm.toLowerCase())
     );
     
     const indexOfLastItem = currentPage * ITEMS_PER_PAGE;
@@ -44,29 +65,40 @@ const ManageWordsPage = () => {
     const totalPages = Math.ceil(filteredWords.length / ITEMS_PER_PAGE);
     const handlePageChange = (pageNumber) => setCurrentPage(pageNumber);
 
-    // --- Fungsi-fungsi untuk mengelola modal ---
-    const handleFormSubmit = (formData) => {
-        if (formModalState.mode === 'add') {
-            const newWord = { id: Date.now(), ...formData };
-            setWordsData(prev => [newWord, ...prev]);
-        } else if (formModalState.mode === 'edit') {
-            setWordsData(prev => prev.map(word => 
-                word.id === formModalState.data.id ? { ...word, ...formData } : word
-            ));
+    const handleFormSubmit = async (formData) => {
+        try {
+            if (formModalState.mode === 'add') {
+                await addEntry(topicId, formData);
+                alert('Kosakata berhasil ditambahkan!');
+            } else if (formModalState.mode === 'edit') {
+                // FIX: Sertakan topicId saat memanggil updateEntry
+                await updateEntry(topicId, formModalState.data._id, formData);
+                alert('Kosakata berhasil diperbarui!');
+            }
+            fetchData();
+        } catch (err) {
+            alert(`Gagal ${formModalState.mode === 'add' ? 'menambahkan' : 'memperbarui'} kosakata.`);
+        } finally {
+            setFormModalState({ isOpen: false, mode: 'add', data: null });
         }
-        setFormModalState({ isOpen: false, mode: 'add', data: null });
-        setDetailModalWord(null);
     };
 
-    const handleDeleteConfirm = () => {
-        setWordsData(prev => prev.filter(word => word.id !== deleteModalWord.id));
-        setDeleteModalWord(null);
-        setDetailModalWord(null);
+    const handleDeleteConfirm = async () => {
+        if (!deleteModalWord) return;
+        try {
+            // FIX: Sertakan topicId saat memanggil deleteEntry
+            await deleteEntry(topicId, deleteModalWord._id);
+            alert('Kosakata berhasil dihapus!');
+            fetchData();
+        } catch (err) {
+            alert('Gagal menghapus kosakata.');
+        } finally {
+            setDeleteModalWord(null);
+        }
     };
 
     return (
         <div>
-            {/* Header Halaman */}
             <div className="flex flex-col sm:flex-row justify-between items-center mb-8 gap-4">
                 <div>
                     <nav className="text-sm text-gray-500 mb-1">
@@ -88,67 +120,49 @@ const ManageWordsPage = () => {
                 </div>
             </div>
 
-            {/* Tampilan Tabel untuk Desktop */}
-            <div className="hidden lg:flex flex-col bg-white rounded-xl shadow-md min-h-[480px]">
-                <div className="overflow-x-auto flex-grow">
-                    <table className="w-full text-left table-fixed">
-                        <thead className="bg-gray-100">
-                            <tr>
-                                <th className="p-4 font-bold text-gray-600 w-[5%]">#</th><th className="p-4 font-bold text-gray-600 w-[18%]">Indonesia</th>
-                                <th className="p-4 font-bold text-gray-600 w-[18%]">Sunda</th><th className="p-4 font-bold text-gray-600 w-[18%]">Inggris</th>
-                                <th className="p-4 font-bold text-gray-600 w-[12%]">Gambar</th><th className="p-4 font-bold text-gray-600 w-[12%]">Audio</th>
-                                <th className="p-4 font-bold text-gray-600 text-center w-[17%]">Action</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {currentItems.map((word, index) => (
-                                <tr key={word.id} className="border-b border-gray-200 hover:bg-gray-50">
-                                    <td className="p-4 text-gray-700">{indexOfFirstItem + index + 1}</td>
-                                    <td className="p-4 text-gray-800 font-semibold truncate">{word.indonesia}</td>
-                                    <td className="p-4 text-gray-800 truncate">{word.sunda}</td><td className="p-4 text-gray-800 truncate">{word.inggris}</td>
-                                    <td className="p-4"><button className="text-blue-600 hover:underline text-sm">Lihat Gambar</button></td>
-                                    <td className="p-4"><button className="text-blue-600 hover:underline text-sm">Putar Audio</button></td>
-                                    <td className="p-4 flex justify-center items-center gap-2">
-                                        <button onClick={() => setFormModalState({ isOpen: true, mode: 'edit', data: word })} className="bg-yellow-100 text-yellow-800 text-xs font-bold px-3 py-1.5 rounded-md hover:bg-yellow-200">Edit</button>
-                                        <button onClick={() => setDeleteModalWord(word)} className="bg-red-100 text-red-800 text-xs font-bold px-3 py-1.5 rounded-md hover:bg-red-200">Delete</button>
-                                    </td>
+            {isLoading ? (
+                <p>Memuat...</p>
+            ) : error ? (
+                <p className="text-red-500">{error}</p>
+            ) : (
+                <div className="hidden lg:flex flex-col bg-white rounded-xl shadow-md min-h-[480px]">
+                    <div className="overflow-x-auto flex-grow">
+                        <table className="w-full text-left table-fixed">
+                            <thead className="bg-gray-100">
+                                <tr>
+                                    <th className="p-4 font-bold text-gray-600 w-[5%]">#</th>
+                                    <th className="p-4 font-bold text-gray-600 w-[18%]">Indonesia</th>
+                                    <th className="p-4 font-bold text-gray-600 w-[18%]">Sunda</th>
+                                    <th className="p-4 font-bold text-gray-600 w-[18%]">Inggris</th>
+                                    <th className="p-4 font-bold text-gray-600 w-[12%]">Gambar</th>
+                                    <th className="p-4 font-bold text-gray-600 w-[12%]">Audio</th>
+                                    <th className="p-4 font-bold text-gray-600 text-center w-[17%]">Action</th>
                                 </tr>
-                            ))}
-                        </tbody>
-                    </table>
+                            </thead>
+                            <tbody>
+                                {currentItems.map((entry, index) => (
+                                    <tr key={entry._id} className="border-b border-gray-200 hover:bg-gray-50">
+                                        <td className="p-4 text-gray-700">{indexOfFirstItem + index + 1}</td>
+                                        <td className="p-4 text-gray-800 font-semibold truncate">{findVocab(entry, 'id')}</td>
+                                        <td className="p-4 text-gray-800 truncate">{findVocab(entry, 'su')}</td>
+                                        <td className="p-4 text-gray-800 truncate">{findVocab(entry, 'en')}</td>
+                                        <td className="p-4"><button className="text-blue-600 hover:underline text-sm">Lihat Gambar</button></td>
+                                        <td className="p-4"><button className="text-blue-600 hover:underline text-sm">Putar Audio</button></td>
+                                        <td className="p-4 flex justify-center items-center gap-2">
+                                            <button onClick={() => setFormModalState({ isOpen: true, mode: 'edit', data: entry })} className="bg-yellow-100 text-yellow-800 text-xs font-bold px-3 py-1.5 rounded-md hover:bg-yellow-200">Edit</button>
+                                            <button onClick={() => setDeleteModalWord(entry)} className="bg-red-100 text-red-800 text-xs font-bold px-3 py-1.5 rounded-md hover:bg-red-200">Delete</button>
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+                    <div className="p-4 border-t border-gray-200">
+                        <Pagination currentPage={currentPage} totalPages={totalPages} onPageChange={handlePageChange} totalItems={filteredWords.length} />
+                    </div>
                 </div>
-                <div className="p-4 border-t border-gray-200">
-                    <Pagination currentPage={currentPage} totalPages={totalPages} onPageChange={handlePageChange} totalItems={filteredWords.length} />
-                </div>
-            </div>
-
-            {/* Tampilan Daftar untuk Mobile */}
-            <div className="lg:hidden bg-white rounded-xl shadow-md">
-                <div className="min-h-[420px]">
-                    {currentItems.map((word) => (
-                        <div key={word.id} className="flex items-center justify-between p-4 border-b border-gray-200">
-                            <div>
-                                <p className="font-bold text-gray-800">{word.indonesia}</p>
-                                <p className="text-sm text-gray-500">{word.sunda} / {word.inggris}</p>
-                            </div>
-                            <button onClick={() => setDetailModalWord(word)} className="bg-blue-500 text-white text-sm font-bold px-4 py-2 rounded-lg hover:bg-blue-600">
-                                Detail
-                            </button>
-                        </div>
-                    ))}
-                </div>
-                 <div className="p-4 border-t">
-                    <Pagination currentPage={currentPage} totalPages={totalPages} onPageChange={handlePageChange} totalItems={filteredWords.length} />
-                </div>
-            </div>
-
-            {/* 2. Render semua modal dengan state masing-masing */}
-            <WordDetailModal 
-                word={detailModalWord} 
-                onClose={() => setDetailModalWord(null)}
-                onEdit={() => setFormModalState({ isOpen: true, mode: 'edit', data: detailModalWord })}
-                onDelete={() => setDeleteModalWord(detailModalWord)}
-            />
+            )}
+            
             <WordFormModal
                 isOpen={formModalState.isOpen}
                 onClose={() => setFormModalState({ isOpen: false, mode: 'add', data: null })}
@@ -161,7 +175,7 @@ const ManageWordsPage = () => {
                 onClose={() => setDeleteModalWord(null)}
                 onConfirm={handleDeleteConfirm}
                 title="Hapus Kosakata"
-                message={`Apakah Anda yakin ingin menghapus kosakata "${deleteModalWord?.indonesia}"?`}
+                message={`Apakah Anda yakin ingin menghapus kosakata "${findVocab(deleteModalWord, 'id')}"?`}
             />
         </div>
     );

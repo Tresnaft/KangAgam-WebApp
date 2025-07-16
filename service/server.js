@@ -16,7 +16,7 @@ const server = http.createServer(app);
 const io = new Server(server, {
   cors: {
     origin: "http://localhost:3000",
-    methods: ["GET", "POST", "PUT", "DELETE"]
+    methods: ["GET", "POST", "PUT", "DELETE"] // Izinkan metode lain
   }
 });
 
@@ -24,11 +24,8 @@ const PORT = process.env.PORT || 5000;
 
 app.use(cors());
 
-// Middleware untuk mem-parsing body JSON dan URL-encoded
-// Ini harus ada sebelum pendaftaran rute
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
-
+// FIX: Hapus body-parser JSON global.
+// app.use(express.json()); // JANGAN GUNAKAN INI SECARA GLOBAL
 
 const uri = process.env.ATLAS_URI;
 mongoose.connect(uri);
@@ -38,9 +35,19 @@ connection.once('open', () => {
     console.log(`Connected to database: '${connection.db.databaseName}'`);
 });
 
+// Tambahkan rute sederhana untuk testing
+app.get("/api", (req, res) => {
+    res.json({ message: "Hello from service!" });
+});
+
 // --- PENDAFTARAN RUTE ---
+
+// Rute ini menggunakan multer, jadi JANGAN gunakan express.json() di sini.
+// Biarkan multer yang menangani body parsing untuk rute ini.
 app.use('/api/topics', topicsRouter);
-app.use('/api/languages', languageRouter);
+
+// Rute ini hanya menerima JSON, jadi AMAN untuk menggunakan express.json() di sini.
+app.use('/api/languages', express.json(), languageRouter);
 
 
 const options = {

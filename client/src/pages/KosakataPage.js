@@ -23,8 +23,7 @@ const pageTransition = {
 
 const KosakataPage = () => {
     const { topicId } = useParams();
-    // FIX 1: Destructure 't' untuk bisa digunakan
-    const { i18n, t } = useTranslation();
+    const { t, i18n } = useTranslation();
 
     const [topicInfo, setTopicInfo] = useState(null);
     const [entries, setEntries] = useState([]);
@@ -68,15 +67,11 @@ const KosakataPage = () => {
         if (!entry || !entry.entryVocabularies) return null;
         return entry.entryVocabularies.find(v => v.language.languageCode === lang) || entry.entryVocabularies[0];
     };
-
-    // FIX 2: Fungsi helper untuk mendapatkan nama topik yang benar sebagai string
+    
     const getTranslatedTopicName = () => {
-        if (!topicInfo || !Array.isArray(topicInfo.topicName)) {
-            return 'Memuat...';
-        }
+        if (!topicInfo || !Array.isArray(topicInfo.topicName)) return 'Memuat...';
         const currentTranslation = topicInfo.topicName.find(t => t.lang === i18n.language);
         if (currentTranslation) return currentTranslation.value;
-        
         const fallback = topicInfo.topicName.find(t => t.lang === 'id') || topicInfo.topicName[0];
         return fallback ? fallback.value : 'Judul Topik';
     };
@@ -91,11 +86,9 @@ const KosakataPage = () => {
             className="p-4 sm:p-6 lg:p-8 pt-4"
         >
             <div className="max-w-7xl mx-auto">
-                {/* FIX 3: Gunakan fungsi helper untuk mendapatkan judul yang benar */}
                 <PageHeader title={getTranslatedTopicName()}>
                     <div className='flex items-center gap-4'>
-                        <Link to={`/quiz/${topicId}`} className="bg-blue-100 text-blue-800 font-bold px-4 py-2 rounded-lg text-sm hover:bg-blue-200">Kuis</Link>
-                        {/* FIX 4: Gunakan fungsi 't' untuk menerjemahkan tombol kembali */}
+                        <Link to={`/quiz/${topicId}`} className="bg-blue-100 text-blue-800 font-bold px-4 py-2 rounded-lg text-sm hover:bg-blue-200">{t('quizButton')}</Link>
                         <Link to="/home" className="text-sm text-gray-600 hover:text-black">&larr; {t("backButton")}</Link>
                     </div>
                 </PageHeader>
@@ -109,15 +102,17 @@ const KosakataPage = () => {
                 )}
                 
                 {!error && entries.length > 0 && (
-                    <div className="lg:flex lg:gap-8">
-                        <div className="w-full lg:w-1/3">
+                    <div className="lg:grid lg:grid-cols-12 lg:gap-8 lg:items-start mt-8">
+                        <div className="lg:col-span-4">
                             <div className="lg:sticky top-24">
                                 <div className="bg-gray-100 rounded-2xl shadow-inner overflow-hidden">
-                                    <div className="aspect-w-1 aspect-h-1">
+                                    {/* FIX: Gunakan aspect-square untuk memastikan wadah selalu persegi */}
+                                    <div className="aspect-square">
                                         {activeEntry ? (
-                                            <img src={`http://localhost:5000${activeEntry.entryImagePath.replace(/\\/g, '/')}`} alt="Gambar kosakata" className="w-full h-full object-contain p-4" />
+                                            // FIX: Gunakan object-cover agar gambar mengisi wadah
+                                            <img src={`http://localhost:5000${activeEntry.entryImagePath.replace(/\\/g, '/')}`} alt="Gambar kosakata" className="w-full h-full object-cover" />
                                         ) : (
-                                            <div className="flex items-center justify-center text-gray-400">Pilih kosakata</div>
+                                            <div className="flex items-center justify-center text-gray-400 h-full">Pilih kosakata</div>
                                         )}
                                     </div>
                                 </div>
@@ -131,8 +126,8 @@ const KosakataPage = () => {
                             </div>
                         </div>
 
-                        <div className="w-full lg:w-2/3 mt-8 lg:mt-0">
-                            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                        <div className="lg:col-span-8 mt-8 lg:mt-0">
+                            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
                                 {entries.map((entry) => {
                                     const currentVocab = findVocab(entry, i18n.language);
                                     if (!currentVocab) return null;

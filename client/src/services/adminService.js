@@ -22,9 +22,6 @@ const getAllAdmins = async (token) => {
     return response.data;
 };
 
-/**
- * Membuat admin baru.
- */
 const createAdmin = async (adminData, token) => {
     const config = {
         headers: { Authorization: `Bearer ${token}` },
@@ -33,9 +30,6 @@ const createAdmin = async (adminData, token) => {
     return response.data;
 };
 
-/**
- * Mengupdate data admin.
- */
 const updateAdmin = async (id, adminData, token) => {
     const config = {
         headers: { Authorization: `Bearer ${token}` },
@@ -44,9 +38,6 @@ const updateAdmin = async (id, adminData, token) => {
     return response.data;
 };
 
-/**
- * Menghapus admin.
- */
 const deleteAdmin = async (id, token) => {
     const config = {
         headers: { Authorization: `Bearer ${token}` },

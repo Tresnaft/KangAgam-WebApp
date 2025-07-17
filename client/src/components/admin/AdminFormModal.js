@@ -25,7 +25,6 @@ const AdminFormModal = ({ isOpen, onClose, onSubmit, isSubmitting, mode, initial
                     confirmPassword: '',
                 });
             } else {
-                // Reset form untuk mode 'add'
                 setFormData({
                     adminName: '',
                     adminEmail: '',
@@ -48,7 +47,6 @@ const AdminFormModal = ({ isOpen, onClose, onSubmit, isSubmitting, mode, initial
             return;
         }
         
-        // Hanya kirim password jika diisi (penting untuk mode edit)
         const dataToSubmit = {
             adminName: formData.adminName,
             adminEmail: formData.adminEmail,
@@ -76,7 +74,7 @@ const AdminFormModal = ({ isOpen, onClose, onSubmit, isSubmitting, mode, initial
                         onClick={(e) => e.stopPropagation()}
                     >
                         <form onSubmit={handleSubmit}>
-                            <header className="flex items-center justify-between p-6 border-b">
+                            <header className="flex items34 items-center justify-between p-6 border-b">
                                 <h2 className="text-xl font-bold text-gray-800">
                                     {mode === 'edit' ? 'Edit Admin' : 'Tambah Admin'}
                                 </h2>

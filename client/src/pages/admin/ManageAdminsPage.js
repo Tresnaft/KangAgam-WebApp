@@ -59,18 +59,24 @@ const ManageAdminsPage = () => {
     const handlePageChange = (pageNumber) => setCurrentPage(pageNumber);
 
     const handleFormSubmit = async (formData) => {
+        console.log('Starting to submit form with data:', formData);
         setIsSubmitting(true);
         try {
-            if (modalState.mode === 'add') {
+            if (modalState.type === 'add') {
                 await adminService.createAdmin(formData, user.token);
+                console.log('Admin created successfully');
                 alert('Admin baru berhasil ditambahkan!');
-            } else if (modalState.mode === 'edit') {
+            } else if (modalState.type === 'edit') {
                 await adminService.updateAdmin(modalState.data._id, formData, user.token);
+                console.log('Admin updated successfully');
                 alert('Admin berhasil diperbarui!');
+            } else {
+                console.error('Invalid modal type:', modalState.type);
             }
             fetchAdmins();
             handleCloseModal();
         } catch (err) {
+            console.error('Error during submission:', err);
             const errorMessage = err.response?.data?.message || "Terjadi kesalahan.";
             alert(errorMessage);
         } finally {
@@ -146,7 +152,7 @@ const ManageAdminsPage = () => {
                 isOpen={modalState.type === 'add' || modalState.type === 'edit'}
                 onClose={handleCloseModal}
                 onSubmit={handleFormSubmit}
-                isSubmitting={isSubmitting} // Kirim status submitting ke modal
+                isSubmitting={isSubmitting}
                 mode={modalState.type}
                 initialData={modalState.data}
             />
@@ -154,7 +160,7 @@ const ManageAdminsPage = () => {
                 isOpen={modalState.type === 'delete'}
                 onClose={handleCloseModal}
                 onConfirm={handleDeleteConfirm}
-                isSubmitting={isSubmitting} // Kirim status submitting ke modal
+                isSubmitting={isSubmitting}
                 title="Hapus Admin"
                 message={`Apakah Anda yakin ingin menghapus admin "${modalState.data?.adminEmail}"?`}
             />

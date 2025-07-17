@@ -1,9 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react'; // 1. Import useCallback
 import { Link, useParams } from 'react-router-dom';
-import WordDetailModal from '../../components/admin/WordDetailModal';
 import Pagination from '../../components/ui/Pagination';
 import WordFormModal from '../../components/admin/WordFormModal';
 import ConfirmDeleteModal from '../../components/admin/ConfirmDeleteModal';
+import ImageModal from '../../components/admin/ImageModal';
+import AudioPlayerModal from '../../components/admin/AudioPlayerModal';
 import { getEntriesByTopicId, addEntry, updateEntry, deleteEntry } from '../../services/entryService';
 import { getTopicById } from '../../services/topicService';
 
@@ -22,11 +23,14 @@ const ManageWordsPage = () => {
     const [searchTerm, setSearchTerm] = useState('');
     const [currentPage, setCurrentPage] = useState(1);
     
-    const [detailModalWord, setDetailModalWord] = useState(null);
+    const [imageModalUrl, setImageModalUrl] = useState(null);
+    const [audioModalEntry, setAudioModalEntry] = useState(null);
+
     const [formModalState, setFormModalState] = useState({ isOpen: false, mode: 'add', data: null });
     const [deleteModalWord, setDeleteModalWord] = useState(null);
 
-    const fetchData = async () => {
+    // 2. Bungkus fetchData dengan useCallback
+    const fetchData = useCallback(async () => {
         try {
             setIsLoading(true);
             const [topicInfo, entriesData] = await Promise.all([
@@ -43,11 +47,12 @@ const ManageWordsPage = () => {
         } finally {
             setIsLoading(false);
         }
-    };
+    }, [topicId]); // Tambahkan topicId sebagai dependensi
 
+    // 3. Panggil fetchData di dalam useEffect
     useEffect(() => {
         fetchData();
-    }, [topicId]);
+    }, [fetchData]); // Sekarang fetchData dijamin stabil
 
     const findVocab = (entry, lang) => {
         if (!entry || !entry.entryVocabularies) return 'N/A';
@@ -71,7 +76,6 @@ const ManageWordsPage = () => {
                 await addEntry(topicId, formData);
                 alert('Kosakata berhasil ditambahkan!');
             } else if (formModalState.mode === 'edit') {
-                // FIX: Sertakan topicId saat memanggil updateEntry
                 await updateEntry(topicId, formModalState.data._id, formData);
                 alert('Kosakata berhasil diperbarui!');
             }
@@ -86,7 +90,6 @@ const ManageWordsPage = () => {
     const handleDeleteConfirm = async () => {
         if (!deleteModalWord) return;
         try {
-            // FIX: Sertakan topicId saat memanggil deleteEntry
             await deleteEntry(topicId, deleteModalWord._id);
             alert('Kosakata berhasil dihapus!');
             fetchData();
@@ -146,8 +149,12 @@ const ManageWordsPage = () => {
                                         <td className="p-4 text-gray-800 font-semibold truncate">{findVocab(entry, 'id')}</td>
                                         <td className="p-4 text-gray-800 truncate">{findVocab(entry, 'su')}</td>
                                         <td className="p-4 text-gray-800 truncate">{findVocab(entry, 'en')}</td>
-                                        <td className="p-4"><button className="text-blue-600 hover:underline text-sm">Lihat Gambar</button></td>
-                                        <td className="p-4"><button className="text-blue-600 hover:underline text-sm">Putar Audio</button></td>
+                                        <td className="p-4">
+                                            <button onClick={() => setImageModalUrl(`http://localhost:5000${entry.entryImagePath}`)} className="text-blue-600 hover:underline text-sm">Lihat Gambar</button>
+                                        </td>
+                                        <td className="p-4">
+                                            <button onClick={() => setAudioModalEntry(entry)} className="text-blue-600 hover:underline text-sm">Putar Audio</button>
+                                        </td>
                                         <td className="p-4 flex justify-center items-center gap-2">
                                             <button onClick={() => setFormModalState({ isOpen: true, mode: 'edit', data: entry })} className="bg-yellow-100 text-yellow-800 text-xs font-bold px-3 py-1.5 rounded-md hover:bg-yellow-200">Edit</button>
                                             <button onClick={() => setDeleteModalWord(entry)} className="bg-red-100 text-red-800 text-xs font-bold px-3 py-1.5 rounded-md hover:bg-red-200">Delete</button>
@@ -163,6 +170,9 @@ const ManageWordsPage = () => {
                 </div>
             )}
             
+            <ImageModal imageUrl={imageModalUrl} onClose={() => setImageModalUrl(null)} />
+            <AudioPlayerModal entry={audioModalEntry} onClose={() => setAudioModalEntry(null)} />
+
             <WordFormModal
                 isOpen={formModalState.isOpen}
                 onClose={() => setFormModalState({ isOpen: false, mode: 'add', data: null })}

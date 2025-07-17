@@ -1,157 +1,220 @@
-import React, { useState, useEffect } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import React, { useState, useEffect, useCallback } from 'react';
+import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import KosakataCard from '../components/ui/KosakataCard';
+import { motion, AnimatePresence } from 'framer-motion';
+import { getEntriesByTopicId } from '../services/entryService';
+import { getTopicById } from '../services/topicService';
+import LoadingIndicator from '../components/ui/LoadingIndicator';
+import PageHeader from '../components/ui/PageHeader';
 
-// --- DATA SIMULASI ---
-// Di aplikasi nyata, ini akan datang dari API backend
-const MOCK_QUIZ_DATA = {
-    'abjad': [
-        { question: 'Suara untuk "Aa"', answer: 'Aa', options: ['Aa', 'Ii', 'Uu', 'Ee'] },
-        { question: 'Suara untuk "Bb"', answer: 'Bb', options: ['Dd', 'Bb', 'Pp', 'Gg'] },
-        { question: 'Suara untuk "Cc"', answer: 'Cc', options: ['Kk', 'Ss', 'Cc', 'Gg'] },
-        { question: 'Suara untuk "Dd"', answer: 'Dd', options: ['Dd', 'Bb', 'Tt', 'Pp'] },
-        { question: 'Suara untuk "Ee"', answer: 'Ee', options: ['Aa', 'Ii', 'Oo', 'Ee'] },
-        { question: 'Suara untuk "Ff"', answer: 'Ff', options: ['Vv', 'Pp', 'Ff', 'Hh'] },
-    ],
-    'angka': [
-        { question: 'Suara untuk "Satu"', answer: '1', options: ['1', '7', '2', '5'] },
-        { question: 'Suara untuk "Dua"', answer: '2', options: ['3', '2', '8', '6'] },
-        { question: 'Suara untuk "Tiga"', answer: '3', options: ['5', '9', '3', '1'] },
-        { question: 'Suara untuk "Empat"', answer: '4', options: ['4', '6', '1', '8'] },
-        { question: 'Suara untuk "Lima"', answer: '5', options: ['2', '5', '7', '3'] },
-        { question: 'Suara untuk "Enam"', answer: '6', options: ['9', '4', '6', '8'] },
-    ]
+// Helper function to shuffle an array
+const shuffleArray = (array) => {
+    return [...array].sort(() => Math.random() - 0.5);
 };
-// --------------------
+
+// Helper untuk menemukan vocab berdasarkan bahasa
+const findVocab = (entry, lang) => {
+    if (!entry || !entry.entryVocabularies) return null;
+    return entry.entryVocabularies.find(v => v.language.languageCode === lang) || entry.entryVocabularies[0];
+};
 
 const QuizPage = () => {
     const { topicId } = useParams();
-    const { t } = useTranslation();
+    const { i18n, t } = useTranslation();
+    const navigate = useNavigate();
 
-    // State untuk mengelola jalannya kuis
+    const [topicName, setTopicName] = useState('');
+    const [allEntries, setAllEntries] = useState([]);
     const [questions, setQuestions] = useState([]);
     const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
-    const [score, setScore] = useState({ benar: 0, salah: 0 });
+    const [options, setOptions] = useState([]);
+    const [score, setScore] = useState(0);
     const [wrongAttempts, setWrongAttempts] = useState(0);
-    const [showPopup, setShowPopup] = useState(false);
-    const [selectedAnswer, setSelectedAnswer] = useState(null); // Untuk feedback visual
+    const [feedback, setFeedback] = useState({ show: false, correct: false, selectedId: null });
+    const [quizState, setQuizState] = useState('loading');
 
-    // Mengambil dan mengacak 5 pertanyaan saat halaman dimuat
+    const setupQuestion = useCallback((questionIndex, allEntriesSource) => {
+        if (!questions[questionIndex]) return;
+        const currentQ = questions[questionIndex];
+        const correctAnswer = currentQ;
+        
+        const wrongOptionsPool = allEntriesSource.filter(e => e._id !== correctAnswer._id);
+        const shuffledWrongOptions = shuffleArray(wrongOptionsPool).slice(0, 3);
+        
+        const finalOptions = shuffleArray([correctAnswer, ...shuffledWrongOptions]);
+        setOptions(finalOptions);
+    }, [questions]);
+
     useEffect(() => {
-        const allQuestions = MOCK_QUIZ_DATA[topicId] || [];
-        if (allQuestions.length > 0) {
-            const shuffled = allQuestions.sort(() => 0.5 - Math.random());
-            setQuestions(shuffled.slice(0, 5));
-        } else {
-            setQuestions([]);
-        }
+        const initializeQuiz = async () => {
+            try {
+                const [topicData, entriesData] = await Promise.all([
+                    getTopicById(topicId),
+                    getEntriesByTopicId(topicId)
+                ]);
+
+                const entries = entriesData.entries || [];
+                if (entries.length < 4) {
+                    setQuizState('not_enough_data');
+                    return;
+                }
+                
+                const mainTopicName = topicData.topic.topicName.find(t => t.lang === 'id')?.value || 'Kuis';
+                setTopicName(mainTopicName);
+
+                setAllEntries(entries);
+                const shuffledQuestions = shuffleArray(entries).slice(0, 5);
+                setQuestions(shuffledQuestions);
+                setQuizState('playing');
+            } catch (error) {
+                console.error("Gagal memuat kuis:", error);
+                setQuizState('error');
+            }
+        };
+        initializeQuiz();
     }, [topicId]);
 
-    const currentQuestion = questions[currentQuestionIndex];
-
-    // Fungsi untuk lanjut ke pertanyaan berikutnya atau menyelesaikan kuis
-    const handleNextQuestion = () => {
-        if (currentQuestionIndex >= questions.length - 1) {
-            setShowPopup(true);
-        } else {
-            setCurrentQuestionIndex(prev => prev + 1);
-            setWrongAttempts(0);
-            setSelectedAnswer(null);
+    useEffect(() => {
+        if (quizState === 'playing' && questions.length > 0) {
+            setupQuestion(currentQuestionIndex, allEntries);
         }
-    };
+    }, [currentQuestionIndex, questions, quizState, setupQuestion, allEntries]);
 
-    // Fungsi yang dijalankan saat pengguna memilih jawaban
-    const handleAnswerClick = (option) => {
-        if (!currentQuestion || selectedAnswer) return; // Mencegah klik ganda
+    const handleAnswerClick = (selectedEntry) => {
+        if (feedback.show) return;
 
-        setSelectedAnswer(option);
+        const isCorrect = selectedEntry._id === questions[currentQuestionIndex]._id;
+        setFeedback({ show: true, correct: isCorrect, selectedId: selectedEntry._id });
 
-        if (option === currentQuestion.answer) {
-            // Jawaban Benar
-            setScore(prev => ({ ...prev, benar: prev.benar + 1 }));
-            setTimeout(() => handleNextQuestion(), 1000); // Beri jeda 1 detik
+        if (isCorrect) {
+            setScore(s => s + 1);
+            setTimeout(() => handleNextQuestion(), 1200);
         } else {
-            // Jawaban Salah
-            if (wrongAttempts < 2) {
-                setWrongAttempts(prev => prev + 1);
-                setTimeout(() => setSelectedAnswer(null), 1000); // Reset pilihan setelah 1 detik
+            if (wrongAttempts + 1 >= 3) {
+                setTimeout(() => handleNextQuestion(), 1200);
             } else {
-                setScore(prev => ({ ...prev, salah: prev.salah + 1 }));
-                setTimeout(() => handleNextQuestion(), 1000); // Beri jeda 1 detik
+                setWrongAttempts(w => w + 1);
+                setTimeout(() => setFeedback({ show: false, correct: false, selectedId: null }), 1200);
             }
         }
     };
 
-    // Tampilan loading jika data belum siap
-    if (questions.length === 0) {
-        return <div className="p-8">Mencari data kuis untuk topik '{topicId}'...</div>;
-    }
+    const handleNextQuestion = () => {
+        setFeedback({ show: false, correct: false, selectedId: null });
+        setWrongAttempts(0);
+        if (currentQuestionIndex + 1 >= questions.length) {
+            setQuizState('finished');
+        } else {
+            setCurrentQuestionIndex(i => i + 1);
+        }
+    };
     
-    if (!currentQuestion) {
-        return <div className="p-8">Memuat pertanyaan...</div>;
-    }
+    const restartQuiz = () => {
+        setScore(0);
+        setWrongAttempts(0);
+        setCurrentQuestionIndex(0);
+        const shuffledQuestions = shuffleArray(allEntries).slice(0, 5);
+        setQuestions(shuffledQuestions);
+        setQuizState('playing');
+    };
+
+    const currentQuestion = questions[currentQuestionIndex];
+    const questionAudio = currentQuestion ? findVocab(currentQuestion, i18n.language)?.audioUrl : null;
+
+    if (quizState === 'loading') return <LoadingIndicator />;
+    if (quizState === 'not_enough_data') return <div className="text-center p-8">Tidak cukup kosakata di topik ini untuk membuat kuis (minimal 4).</div>;
+    if (quizState === 'error') return <div className="text-center p-8 text-red-500">Gagal memuat kuis.</div>;
 
     return (
-        <>
-            {/* Tombol Kembali */}
-            <div className="w-full mb-6">
-                <Link 
-                    to={`/topik/${topicId}`} 
-                    className="text-sm text-gray-600 hover:text-black font-medium flex items-center gap-2 w-fit"
-                >
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-                    </svg>
-                    {t('backButton')} ke Kosakata
-                </Link>
-            </div>
+        // FIX 1: Gunakan flexbox untuk membuat layout selayar penuh
+        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="p-4 sm:p-6 lg:p-8 flex flex-col h-full">
+            {quizState === 'playing' && currentQuestion && (
+                <>
+                    <PageHeader title={`Kuis Topik ${topicName}`}>
+                         <Link to={`/topik/${topicId}`} className="text-sm text-gray-600 hover:text-black">&larr; Kembali ke Topik</Link>
+                    </PageHeader>
 
-            {/* Header Halaman Kuis */}
-            <div className="text-center mb-8">
-                <h1 className="text-4xl font-bold text-gray-800">
-                    {t('quizButton')} Topik {t(`topics.${topicId}`)}
-                </h1>
-                <p className="text-lg text-gray-600 mt-2">Dengarkan Pertanyaan melalui audio ini</p>
-            </div>
+                    {/* Kontainer utama yang mengisi sisa ruang */}
+                    <div className="flex-grow flex items-center justify-center mt-4">
+                        <div className="w-full max-w-6xl">
+                            <div className="lg:grid lg:grid-cols-12 lg:gap-12 lg:items-center">
+                                
+                                <div className="lg:col-span-5 text-center lg:text-left flex flex-col justify-center">
+                                    {/* FIX 2: Gunakan h3 untuk instruksi */}
+                                    <h3 className="text-2xl font-semibold text-gray-700">Dengarkan Pertanyaan melalui audio ini</h3>
+                                    
+                                    <motion.button 
+                                        whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}
+                                        onClick={() => new Audio(`http://localhost:5000${questionAudio}`).play()}
+                                        className="my-8 w-40 h-40 bg-yellow-300 rounded-2xl flex items-center justify-center text-5xl shadow-lg mx-auto lg:mx-0"
+                                    >
+                                        🔊
+                                    </motion.button>
+                                    
+                                    <div className="flex justify-center lg:justify-start items-center gap-4">
+                                         <p className="font-bold text-gray-700">Nilai Kamu</p>
+                                         <div className="bg-green-200 text-green-800 font-bold px-4 py-2 rounded-lg">
+                                             Benar: {score}
+                                         </div>
+                                         <div className="bg-red-200 text-red-800 font-bold px-4 py-2 rounded-lg">
+                                             Salah: {wrongAttempts}
+                                         </div>
+                                    </div>
+                                </div>
 
-            {/* Konten Utama Kuis */}
-            <div className="text-center">
-                <div className="my-8 flex justify-center">
-                    <div className="w-32 h-32 bg-yellow-200 rounded-2xl flex items-center justify-center text-5xl animate-pulse cursor-pointer">
-                        🔊
-                    </div>
-                </div>
-
-                <div className="flex justify-center items-center gap-6 mb-8">
-                    <span className="text-lg font-bold">Nilai Kamu</span>
-                    <span className="text-lg font-bold bg-green-200 text-green-800 px-4 py-1 rounded-lg">Benar: {score.benar}</span>
-                    <span className="text-lg font-bold bg-red-200 text-red-800 px-4 py-1 rounded-lg">Salah: {wrongAttempts} / 3</span>
-                </div>
-
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-6 max-w-2xl mx-auto">
-                    {currentQuestion.options.map((option, index) => (
-                        <div key={index} onClick={() => handleAnswerClick(option)}>
-                            <KosakataCard content={option} />
+                                <div className="lg:col-span-7 mt-8 lg:mt-0">
+                                     <div className="grid grid-cols-2 gap-4 sm:gap-6">
+                                        {options.map(opt => (
+                                            <motion.div 
+                                                key={opt._id}
+                                                onClick={() => handleAnswerClick(opt)}
+                                                className={`relative aspect-square bg-gray-100 rounded-2xl overflow-hidden shadow-md cursor-pointer border-4 transition-all duration-300 
+                                                            ${feedback.show && feedback.selectedId === opt._id 
+                                                                ? (feedback.correct ? 'border-green-500 scale-105' : 'border-red-500')
+                                                                : 'border-transparent'
+                                                            }`}
+                                            >
+                                                <img 
+                                                    src={`http://localhost:5000${opt.entryImagePath}`} 
+                                                    className="w-full h-full object-cover"
+                                                    alt="Pilihan Jawaban"
+                                                />
+                                            </motion.div>
+                                        ))}
+                                    </div>
+                                </div>
+                            </div>
                         </div>
-                    ))}
-                </div>
-            </div>
-
-            {/* Popup Hasil Akhir */}
-            {showPopup && (
-                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-                    <div className="bg-white p-10 rounded-xl text-center shadow-2xl animate-pulse">
-                        <h2 className="text-3xl font-bold mb-4">Quiz Selesai!</h2>
-                        <p className="text-xl">Skor Akhir Anda:</p>
-                        <p className="text-5xl font-bold my-4">{score.benar} / {questions.length}</p>
-                        <button onClick={() => window.location.reload()} className="bg-blue-500 text-white px-6 py-2 rounded-lg hover:bg-blue-600">
-                            Coba Lagi
-                        </button>
                     </div>
-                </div>
+                </>
             )}
-        </>
+
+            <AnimatePresence>
+                {quizState === 'finished' && (
+                    <motion.div
+                        initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                        className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+                    >
+                        <motion.div 
+                            initial={{ scale: 0.7, y: 50 }} animate={{ scale: 1, y: 0 }}
+                            className="bg-white p-8 rounded-2xl text-center shadow-2xl w-full max-w-md"
+                        >
+                            <h2 className="text-3xl font-bold mb-4">Kuis Selesai!</h2>
+                            <p className="text-xl">Skor Akhir Anda:</p>
+                            <p className="text-6xl font-bold my-4">{score} / {questions.length}</p>
+                            <div className="flex flex-col sm:flex-row gap-4 mt-6">
+                                <button onClick={restartQuiz} className="w-full bg-blue-500 text-white px-6 py-3 rounded-lg hover:bg-blue-600 font-bold">
+                                    Coba Lagi
+                                </button>
+                                <button onClick={() => navigate(`/topik/${topicId}`)} className="w-full bg-gray-200 text-gray-800 px-6 py-3 rounded-lg hover:bg-gray-300 font-bold">
+                                    Kembali ke Topik
+                                </button>
+                            </div>
+                        </motion.div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
+        </motion.div>
     );
 };
 

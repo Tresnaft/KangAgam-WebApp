@@ -10,6 +10,7 @@ import swaggerUi from 'swagger-ui-express';
 import topicsRouter from './src/routes/TopicRoutes.js';
 import languageRouter from './src/routes/LanguageRoutes.js';
 import learnerRouter from './src/routes/LearnerRoutes.js';
+import adminRouter from './src/routes/AdminRoutes.js';
 
 // Express dan Socket.IO setup
 const app = express();
@@ -24,6 +25,7 @@ const io = new Server(server, {
 const PORT = process.env.PORT || 5000;
 
 app.use(cors());
+app.use(express.json())
 
 // FIX: Hapus body-parser JSON global.
 // app.use(express.json()); // JANGAN GUNAKAN INI SECARA GLOBAL
@@ -48,6 +50,7 @@ app.get("/api", (req, res) => {
 app.use('/api/topics', topicsRouter);
 app.use('/api/languages', languageRouter);
 app.use('/api/learners', learnerRouter);
+app.use('/api/admin', adminRouter);
 
 
 const options = {

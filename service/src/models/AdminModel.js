@@ -46,11 +46,10 @@ AdminSchema.methods.comparePassword = async function(candidatePassword) {
 
 // Method untuk mengatur token reset password
 AdminSchema.methods.setPasswordResetToken = function() {
-    const crypto = require('crypto');
     const resetToken = crypto.randomBytes(32).toString('hex');
     this.passwordResetToken = crypto.createHash('sha256').update(resetToken).digest('hex');
     this.passwordResetExpires = Date.now() + 30 * 60 * 1000; // Token berlaku selama 30 menit
     return resetToken;
 }
 
-module.exports = mongoose.model("Admin", AdminSchema);
+export default mongoose.model('Admin', AdminSchema);

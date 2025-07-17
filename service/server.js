@@ -55,7 +55,7 @@ connection.once('open', () => {
 app.use('/api/topics', topicsRouter);
 app.use('/api/languages', languageRouter);
 app.use('/api/learners', learnerRouter);
-app.use('/api/admin', adminRouter);
+app.use('/api/admins', adminRouter);
 
 
 const options = {

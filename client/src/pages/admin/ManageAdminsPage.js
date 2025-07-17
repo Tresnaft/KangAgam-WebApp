@@ -1,18 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import Pagination from '../../components/ui/Pagination';
 import AdminFormModal from '../../components/admin/AdminFormModal';
 import ConfirmDeleteModal from '../../components/admin/ConfirmDeleteModal';
-
-// --- DATA SIMULASI ---
-const initialAdminsData = [
-    { id: 1, email: 'ondol@sigarda.com', role: 'SuperAdmin', dateAdded: '15 Mei 2024 09:33', lastVerified: '15 Mei 2024 09:45' },
-    { id: 2, email: 'budi@sigarda.com', role: 'Admin', dateAdded: '15 Mei 2024 09:33', lastVerified: '16 Mei 2024 07:04' },
-    { id: 3, email: 'coco@sigarda.com', role: 'Admin', dateAdded: '15 Mei 2024 09:33', lastVerified: '17 Mei 2024 11:15' },
-    { id: 4, email: 'raihan@sigarda.com', role: 'SuperAdmin', dateAdded: '15 Mei 2024 09:33', lastVerified: '15 Mei 2024 09:39' },
-    { id: 5, email: 'tresna@sigarda.com', role: 'Admin', dateAdded: '15 Mei 2024 09:33', lastVerified: '15 Mei 2024 09:40' },
-    { id: 6, email: 'dian@sigarda.com', role: 'Admin', dateAdded: '16 Mei 2024 11:00', lastVerified: '18 Mei 2024 12:00' },
-];
-// --------------------
+import adminService from '../../services/adminService';
+import { useAuth } from '../../context/AuthContext';
 
 const ITEMS_PER_PAGE = 5;
 
@@ -20,13 +11,42 @@ const SearchIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-5 
 const PlusIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" /></svg>;
 
 const ManageAdminsPage = () => {
-    const [adminsData, setAdminsData] = useState(initialAdminsData);
+    const { user } = useAuth();
+    
+    const [adminsData, setAdminsData] = useState([]);
+    const [isLoading, setIsLoading] = useState(true);
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    const [error, setError] = useState(null);
+
     const [searchTerm, setSearchTerm] = useState('');
     const [modalState, setModalState] = useState({ type: null, data: null });
     const [currentPage, setCurrentPage] = useState(1);
 
+    const fetchAdmins = useCallback(async () => {
+        if (!user?.token) {
+            setError("Otorisasi gagal. Silakan login kembali.");
+            setIsLoading(false);
+            return;
+        }
+        try {
+            setIsLoading(true);
+            const response = await adminService.getAllAdmins(user.token);
+            setAdminsData(response.data || []);
+        } catch (err) {
+            setError("Gagal memuat data admin.");
+            console.error(err);
+        } finally {
+            setIsLoading(false);
+        }
+    }, [user]);
+
+    useEffect(() => {
+        fetchAdmins();
+    }, [fetchAdmins]);
+
     const filteredAdmins = adminsData.filter(admin =>
-        admin.email.toLowerCase().includes(searchTerm.toLowerCase())
+        admin.adminEmail.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        admin.adminName.toLowerCase().includes(searchTerm.toLowerCase())
     );
 
     const indexOfLastItem = currentPage * ITEMS_PER_PAGE;
@@ -38,26 +58,43 @@ const ManageAdminsPage = () => {
     const handleCloseModal = () => setModalState({ type: null, data: null });
     const handlePageChange = (pageNumber) => setCurrentPage(pageNumber);
 
-    const handleFormSubmit = (formData) => {
-        if (modalState.type === 'add') {
-            const newAdmin = { id: Date.now(), ...formData, dateAdded: new Date().toLocaleString('id-ID'), lastVerified: new Date().toLocaleString('id-ID') };
-            setAdminsData(prev => [newAdmin, ...prev]);
-        } else if (modalState.type === 'edit') {
-            setAdminsData(prev => prev.map(admin => 
-                admin.id === modalState.data.id ? { ...admin, ...formData } : admin
-            ));
+    const handleFormSubmit = async (formData) => {
+        setIsSubmitting(true);
+        try {
+            if (modalState.mode === 'add') {
+                await adminService.createAdmin(formData, user.token);
+                alert('Admin baru berhasil ditambahkan!');
+            } else if (modalState.mode === 'edit') {
+                await adminService.updateAdmin(modalState.data._id, formData, user.token);
+                alert('Admin berhasil diperbarui!');
+            }
+            fetchAdmins();
+            handleCloseModal();
+        } catch (err) {
+            const errorMessage = err.response?.data?.message || "Terjadi kesalahan.";
+            alert(errorMessage);
+        } finally {
+            setIsSubmitting(false);
         }
-        handleCloseModal();
     };
 
-    const handleDeleteConfirm = () => {
-        setAdminsData(prev => prev.filter(admin => admin.id !== modalState.data.id));
-        handleCloseModal();
+    const handleDeleteConfirm = async () => {
+        if (!modalState.data) return;
+        setIsSubmitting(true);
+        try {
+            await adminService.deleteAdmin(modalState.data._id, user.token);
+            alert('Admin berhasil dihapus!');
+            fetchAdmins();
+            handleCloseModal();
+        } catch (err) {
+            alert('Gagal menghapus admin.');
+        } finally {
+            setIsSubmitting(false);
+        }
     };
 
     return (
         <div>
-            {/* Header Halaman */}
             <div className="flex flex-col sm:flex-row justify-between items-center mb-8 gap-4">
                 <h1 className="text-3xl font-bold text-gray-800">List Akun Admin</h1>
                 <div className="flex items-center gap-4 w-full sm:w-auto">
@@ -72,68 +109,44 @@ const ManageAdminsPage = () => {
                 </div>
             </div>
 
-            {/* Tampilan Tabel untuk Desktop */}
-            <div className="hidden lg:flex flex-col bg-white rounded-xl shadow-md min-h-[480px]">
-                <div className="overflow-x-auto flex-grow">
-                    <table className="w-full text-left table-fixed">
-                        <thead className="bg-gray-100">
-                            <tr>
-                                <th className="p-4 font-bold text-gray-600 w-[5%]">#</th>
-                                <th className="p-4 font-bold text-gray-600 w-[25%]">E-Mail</th>
-                                <th className="p-4 font-bold text-gray-600 w-[15%]">Role</th>
-                                <th className="p-4 font-bold text-gray-600 w-[20%]">Tanggal Ditambahkan</th>
-                                <th className="p-4 font-bold text-gray-600 w-[20%]">Tanggal Verifikasi</th>
-                                <th className="p-4 font-bold text-gray-600 text-center w-[15%]">Action</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {currentItems.map((admin, index) => (
-                                <tr key={admin.id} className="border-b border-gray-200 hover:bg-gray-50">
-                                    <td className="p-4 text-gray-700">{indexOfFirstItem + index + 1}</td>
-                                    <td className="p-4 text-gray-800 font-semibold truncate">{admin.email}</td>
-                                    <td className="p-4 text-gray-700">{admin.role}</td>
-                                    <td className="p-4 text-gray-700">{admin.dateAdded}</td>
-                                    <td className="p-4 text-gray-700">{admin.lastVerified}</td>
-                                    <td className="p-4 flex justify-center items-center gap-2">
-                                        <button onClick={() => handleOpenModal('edit', admin)} className="bg-yellow-100 text-yellow-800 text-xs font-bold px-3 py-1.5 rounded-md hover:bg-yellow-200">Edit</button>
-                                        <button onClick={() => handleOpenModal('delete', admin)} className="bg-red-100 text-red-800 text-xs font-bold px-3 py-1.5 rounded-md hover:bg-red-200">Delete</button>
-                                    </td>
+            {isLoading ? <p>Memuat data admin...</p> : error ? <p className="text-red-500">{error}</p> : (
+                <div className="hidden lg:flex flex-col bg-white rounded-xl shadow-md min-h-[480px]">
+                    <div className="overflow-x-auto flex-grow">
+                        <table className="w-full text-left table-fixed">
+                            <thead className="bg-gray-100">
+                                <tr>
+                                    <th className="p-4 font-bold text-gray-600 w-[5%]">#</th>
+                                    <th className="p-4 font-bold text-gray-600 w-[30%]">Nama</th>
+                                    <th className="p-4 font-bold text-gray-600 w-[40%]">E-Mail</th>
+                                    <th className="p-4 font-bold text-gray-600 text-center w-[25%]">Action</th>
                                 </tr>
-                            ))}
-                        </tbody>
-                    </table>
+                            </thead>
+                            <tbody>
+                                {currentItems.map((admin, index) => (
+                                    <tr key={admin._id} className="border-b border-gray-200 hover:bg-gray-50">
+                                        <td className="p-4 text-gray-700">{indexOfFirstItem + index + 1}</td>
+                                        <td className="p-4 text-gray-800 font-semibold truncate">{admin.adminName}</td>
+                                        <td className="p-4 text-gray-700 truncate">{admin.adminEmail}</td>
+                                        <td className="p-4 flex justify-center items-center gap-2">
+                                            <button onClick={() => handleOpenModal('edit', admin)} className="bg-yellow-100 text-yellow-800 text-xs font-bold px-3 py-1.5 rounded-md hover:bg-yellow-200">Edit</button>
+                                            <button onClick={() => handleOpenModal('delete', admin)} className="bg-red-100 text-red-800 text-xs font-bold px-3 py-1.5 rounded-md hover:bg-red-200">Delete</button>
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+                    <div className="p-4 border-t border-gray-200">
+                        <Pagination currentPage={currentPage} totalPages={totalPages} onPageChange={handlePageChange} totalItems={filteredAdmins.length} />
+                    </div>
                 </div>
-                <div className="p-4 border-t border-gray-200">
-                    <Pagination currentPage={currentPage} totalPages={totalPages} onPageChange={handlePageChange} totalItems={filteredAdmins.length} />
-                </div>
-            </div>
+            )}
 
-            {/* Tampilan Daftar untuk Mobile */}
-            <div className="lg:hidden bg-white rounded-xl shadow-md">
-                <div className="min-h-[420px]">
-                    {currentItems.map((admin) => (
-                        <div key={admin.id} className="flex items-center justify-between p-4 border-b border-gray-200">
-                            <div>
-                                <p className="font-bold text-gray-800">{admin.email}</p>
-                                <p className="text-sm text-gray-500">{admin.role}</p>
-                            </div>
-                            <div className="flex gap-2">
-                                <button onClick={() => handleOpenModal('edit', admin)} className="bg-yellow-100 text-yellow-800 text-sm font-bold p-2 rounded-lg hover:bg-yellow-200">Edit</button>
-                                <button onClick={() => handleOpenModal('delete', admin)} className="bg-red-100 text-red-800 text-sm font-bold p-2 rounded-lg hover:bg-red-200">Delete</button>
-                            </div>
-                        </div>
-                    ))}
-                </div>
-                <div className="p-4 border-t">
-                    <Pagination currentPage={currentPage} totalPages={totalPages} onPageChange={handlePageChange} totalItems={filteredAdmins.length} />
-                </div>
-            </div>
-
-            {/* Render semua modal di sini */}
             <AdminFormModal 
                 isOpen={modalState.type === 'add' || modalState.type === 'edit'}
                 onClose={handleCloseModal}
                 onSubmit={handleFormSubmit}
+                isSubmitting={isSubmitting} // Kirim status submitting ke modal
                 mode={modalState.type}
                 initialData={modalState.data}
             />
@@ -141,8 +154,9 @@ const ManageAdminsPage = () => {
                 isOpen={modalState.type === 'delete'}
                 onClose={handleCloseModal}
                 onConfirm={handleDeleteConfirm}
+                isSubmitting={isSubmitting} // Kirim status submitting ke modal
                 title="Hapus Admin"
-                message={`Apakah Anda yakin ingin menghapus admin "${modalState.data?.email}"?`}
+                message={`Apakah Anda yakin ingin menghapus admin "${modalState.data?.adminEmail}"?`}
             />
         </div>
     );

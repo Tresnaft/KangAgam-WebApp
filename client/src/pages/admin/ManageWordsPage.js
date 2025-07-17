@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import WordDetailModal from '../../components/admin/WordDetailModal';
 import Pagination from '../../components/ui/Pagination';
 import WordFormModal from '../../components/admin/WordFormModal';
 import ConfirmDeleteModal from '../../components/admin/ConfirmDeleteModal';
+import ImageModal from '../../components/admin/ImageModal'; // 1. Import modal gambar
+import AudioPlayerModal from '../../components/admin/AudioPlayerModal'; // 2. Import modal audio
 import { getEntriesByTopicId, addEntry, updateEntry, deleteEntry } from '../../services/entryService';
 import { getTopicById } from '../../services/topicService';
 
@@ -22,7 +23,10 @@ const ManageWordsPage = () => {
     const [searchTerm, setSearchTerm] = useState('');
     const [currentPage, setCurrentPage] = useState(1);
     
-    const [detailModalWord, setDetailModalWord] = useState(null);
+    // 3. State untuk mengontrol modal gambar dan audio
+    const [imageModalUrl, setImageModalUrl] = useState(null);
+    const [audioModalEntry, setAudioModalEntry] = useState(null);
+
     const [formModalState, setFormModalState] = useState({ isOpen: false, mode: 'add', data: null });
     const [deleteModalWord, setDeleteModalWord] = useState(null);
 
@@ -71,7 +75,6 @@ const ManageWordsPage = () => {
                 await addEntry(topicId, formData);
                 alert('Kosakata berhasil ditambahkan!');
             } else if (formModalState.mode === 'edit') {
-                // FIX: Sertakan topicId saat memanggil updateEntry
                 await updateEntry(topicId, formModalState.data._id, formData);
                 alert('Kosakata berhasil diperbarui!');
             }
@@ -86,7 +89,6 @@ const ManageWordsPage = () => {
     const handleDeleteConfirm = async () => {
         if (!deleteModalWord) return;
         try {
-            // FIX: Sertakan topicId saat memanggil deleteEntry
             await deleteEntry(topicId, deleteModalWord._id);
             alert('Kosakata berhasil dihapus!');
             fetchData();
@@ -146,8 +148,13 @@ const ManageWordsPage = () => {
                                         <td className="p-4 text-gray-800 font-semibold truncate">{findVocab(entry, 'id')}</td>
                                         <td className="p-4 text-gray-800 truncate">{findVocab(entry, 'su')}</td>
                                         <td className="p-4 text-gray-800 truncate">{findVocab(entry, 'en')}</td>
-                                        <td className="p-4"><button className="text-blue-600 hover:underline text-sm">Lihat Gambar</button></td>
-                                        <td className="p-4"><button className="text-blue-600 hover:underline text-sm">Putar Audio</button></td>
+                                        {/* 4. Hubungkan tombol ke state modal */}
+                                        <td className="p-4">
+                                            <button onClick={() => setImageModalUrl(`http://localhost:5000${entry.entryImagePath}`)} className="text-blue-600 hover:underline text-sm">Lihat Gambar</button>
+                                        </td>
+                                        <td className="p-4">
+                                            <button onClick={() => setAudioModalEntry(entry)} className="text-blue-600 hover:underline text-sm">Putar Audio</button>
+                                        </td>
                                         <td className="p-4 flex justify-center items-center gap-2">
                                             <button onClick={() => setFormModalState({ isOpen: true, mode: 'edit', data: entry })} className="bg-yellow-100 text-yellow-800 text-xs font-bold px-3 py-1.5 rounded-md hover:bg-yellow-200">Edit</button>
                                             <button onClick={() => setDeleteModalWord(entry)} className="bg-red-100 text-red-800 text-xs font-bold px-3 py-1.5 rounded-md hover:bg-red-200">Delete</button>
@@ -163,6 +170,10 @@ const ManageWordsPage = () => {
                 </div>
             )}
             
+            {/* 5. Render semua modal di sini */}
+            <ImageModal imageUrl={imageModalUrl} onClose={() => setImageModalUrl(null)} />
+            <AudioPlayerModal entry={audioModalEntry} onClose={() => setAudioModalEntry(null)} />
+
             <WordFormModal
                 isOpen={formModalState.isOpen}
                 onClose={() => setFormModalState({ isOpen: false, mode: 'add', data: null })}

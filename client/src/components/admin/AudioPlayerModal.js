@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 const CloseIcon = () => (
@@ -13,16 +13,56 @@ const PlayIcon = () => (
     </svg>
 );
 
+// Komponen AudioPlayerModal yang sudah disempurnakan
 const AudioPlayerModal = ({ entry, onClose }) => {
+    const [nowPlaying, setNowPlaying] = useState(null);
+    const [audioDuration, setAudioDuration] = useState(0);
+    
+    // State untuk menyimpan objek audio agar bisa dihentikan
+    const [audioObject, setAudioObject] = useState(null);
+
+    // Hentikan audio jika modal ditutup
+    useEffect(() => {
+        return () => {
+            if (audioObject) {
+                audioObject.pause();
+            }
+        };
+    }, [audioObject]);
+
+
     if (!entry) return null;
 
-    const playAudio = (audioUrl) => {
-        if (!audioUrl || audioUrl.endsWith('#')) {
+    const playAudio = (vocab) => {
+        // Jika ada audio yang sedang diputar, hentikan dulu
+        if (audioObject) {
+            audioObject.pause();
+            setNowPlaying(null);
+        }
+
+        const audioUrl = `http://localhost:5000${vocab.audioUrl}`;
+        if (!vocab.audioUrl || vocab.audioUrl.endsWith('#')) {
             alert('Audio untuk bahasa ini tidak tersedia.');
             return;
         }
-        const audio = new Audio(audioUrl);
-        audio.play().catch(err => console.error("Gagal memutar audio:", err));
+
+        const newAudio = new Audio(audioUrl);
+        setAudioObject(newAudio); // Simpan objek audio ke state
+
+        newAudio.onloadedmetadata = () => {
+            setAudioDuration(newAudio.duration);
+        };
+        newAudio.onplay = () => setNowPlaying(vocab._id);
+        newAudio.onended = () => {
+            setNowPlaying(null);
+            setAudioObject(null);
+        };
+        newAudio.onerror = () => {
+            console.error("Gagal memutar audio:", audioUrl);
+            setNowPlaying(null);
+            setAudioObject(null);
+        };
+        newAudio.play().catch(err => console.error("Gagal memutar audio:", err));
     };
 
     const languageNames = { id: 'Indonesia', su: 'Sunda', en: 'Inggris' };
@@ -44,17 +84,34 @@ const AudioPlayerModal = ({ entry, onClose }) => {
                         <button type="button" onClick={onClose} className="p-1 rounded-full hover:bg-gray-100"><CloseIcon /></button>
                     </header>
                     <div className="p-4 space-y-2">
-                        {entry.entryVocabularies.map(vocab => (
-                            <button 
-                                key={vocab._id}
-                                onClick={() => playAudio(`http://localhost:5000${vocab.audioUrl}`)}
-                                className="w-full flex items-center text-left p-3 rounded-lg hover:bg-gray-100 transition-colors"
-                            >
-                                <PlayIcon />
-                                <span>{languageNames[vocab.language.languageCode] || vocab.language.languageCode}</span>
-                                <span className="ml-auto text-sm text-gray-500">{vocab.vocab}</span>
-                            </button>
-                        ))}
+                        {entry.entryVocabularies.map(vocab => {
+                            const isPlaying = nowPlaying === vocab._id;
+                            return (
+                                // FIX: Tambahkan 'relative' dan 'overflow-hidden' untuk progress bar
+                                <button 
+                                    key={vocab._id}
+                                    onClick={() => playAudio(vocab)}
+                                    className={`relative overflow-hidden w-full flex items-center text-left p-3 rounded-lg transition-colors ${
+                                        isPlaying ? 'bg-blue-100 text-blue-800' : 'hover:bg-gray-100'
+                                    }`}
+                                    disabled={nowPlaying && !isPlaying}
+                                >
+                                    <PlayIcon />
+                                    <span>{languageNames[vocab.language.languageCode] || vocab.language.languageCode}</span>
+                                    <span className="ml-auto text-sm text-gray-500">{vocab.vocab}</span>
+                                    
+                                    {/* FIX: Animasi garis horizontal sebagai progress bar */}
+                                    {isPlaying && (
+                                        <motion.div
+                                            className="absolute bottom-0 left-0 h-1 bg-blue-500"
+                                            initial={{ width: '0%' }}
+                                            animate={{ width: '100%' }}
+                                            transition={{ duration: audioDuration, ease: 'linear' }}
+                                        />
+                                    )}
+                                </button>
+                            );
+                        })}
                     </div>
                 </motion.div>
             </motion.div>

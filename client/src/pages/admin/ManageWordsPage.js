@@ -1,10 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react'; // 1. Import useCallback
 import { Link, useParams } from 'react-router-dom';
 import Pagination from '../../components/ui/Pagination';
 import WordFormModal from '../../components/admin/WordFormModal';
 import ConfirmDeleteModal from '../../components/admin/ConfirmDeleteModal';
-import ImageModal from '../../components/admin/ImageModal'; // 1. Import modal gambar
-import AudioPlayerModal from '../../components/admin/AudioPlayerModal'; // 2. Import modal audio
+import ImageModal from '../../components/admin/ImageModal';
+import AudioPlayerModal from '../../components/admin/AudioPlayerModal';
 import { getEntriesByTopicId, addEntry, updateEntry, deleteEntry } from '../../services/entryService';
 import { getTopicById } from '../../services/topicService';
 
@@ -23,14 +23,14 @@ const ManageWordsPage = () => {
     const [searchTerm, setSearchTerm] = useState('');
     const [currentPage, setCurrentPage] = useState(1);
     
-    // 3. State untuk mengontrol modal gambar dan audio
     const [imageModalUrl, setImageModalUrl] = useState(null);
     const [audioModalEntry, setAudioModalEntry] = useState(null);
 
     const [formModalState, setFormModalState] = useState({ isOpen: false, mode: 'add', data: null });
     const [deleteModalWord, setDeleteModalWord] = useState(null);
 
-    const fetchData = async () => {
+    // 2. Bungkus fetchData dengan useCallback
+    const fetchData = useCallback(async () => {
         try {
             setIsLoading(true);
             const [topicInfo, entriesData] = await Promise.all([
@@ -47,11 +47,12 @@ const ManageWordsPage = () => {
         } finally {
             setIsLoading(false);
         }
-    };
+    }, [topicId]); // Tambahkan topicId sebagai dependensi
 
+    // 3. Panggil fetchData di dalam useEffect
     useEffect(() => {
         fetchData();
-    }, [topicId]);
+    }, [fetchData]); // Sekarang fetchData dijamin stabil
 
     const findVocab = (entry, lang) => {
         if (!entry || !entry.entryVocabularies) return 'N/A';
@@ -148,7 +149,6 @@ const ManageWordsPage = () => {
                                         <td className="p-4 text-gray-800 font-semibold truncate">{findVocab(entry, 'id')}</td>
                                         <td className="p-4 text-gray-800 truncate">{findVocab(entry, 'su')}</td>
                                         <td className="p-4 text-gray-800 truncate">{findVocab(entry, 'en')}</td>
-                                        {/* 4. Hubungkan tombol ke state modal */}
                                         <td className="p-4">
                                             <button onClick={() => setImageModalUrl(`http://localhost:5000${entry.entryImagePath}`)} className="text-blue-600 hover:underline text-sm">Lihat Gambar</button>
                                         </td>
@@ -170,7 +170,6 @@ const ManageWordsPage = () => {
                 </div>
             )}
             
-            {/* 5. Render semua modal di sini */}
             <ImageModal imageUrl={imageModalUrl} onClose={() => setImageModalUrl(null)} />
             <AudioPlayerModal entry={audioModalEntry} onClose={() => setAudioModalEntry(null)} />
 

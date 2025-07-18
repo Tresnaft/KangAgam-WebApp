@@ -10,30 +10,32 @@ export const createLearner = async (req, res) => {
     try {
         const { learnerName, learnerPhone, learnerInstitution } = req.body;
 
-        // Validasi input dasar
         if (!learnerName || !learnerPhone || !learnerInstitution) {
             return res.status(400).json({ message: 'Semua field (nama, telepon, lembaga) harus diisi.' });
         }
 
-        // --- Langkah 1: Cari learner dengan nama DAN nomor telepon yang sama ---
-        const existingLearner = await Learner.findOne({ learnerName, learnerPhone });
+        // --- Perubahan di baris ini ---
+        // Kita menggunakan regex untuk mencari learnerName tanpa mempedulikan huruf besar/kecil.
+        const existingLearner = await Learner.findOne({
+            learnerName: { $regex: new RegExp(`^${learnerName}$`, "i") },
+            learnerPhone: learnerPhone
+        });
+        // -----------------------------
 
-        // --- Langkah 2: Jika sudah ada, kembalikan data yang ada ---
         if (existingLearner) {
-            return res.status(200).json({ // Gunakan status 200 OK karena kita tidak membuat data baru
+            return res.status(200).json({
                 message: 'Learner dengan data ini sudah terdaftar. Menggunakan data yang ada.',
                 data: existingLearner
             });
         }
 
-        // --- Langkah 3: Jika tidak ada, buat learner baru ---
         const newLearner = await Learner.create({
             learnerName,
             learnerPhone,
             learnerInstitution
         });
 
-        res.status(201).json({ // Gunakan status 201 Created karena ini data baru
+        res.status(201).json({
             message: 'Learner berhasil dibuat.',
             data: newLearner
         });

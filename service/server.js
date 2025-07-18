@@ -14,6 +14,8 @@ import topicsRouter from './src/routes/TopicRoutes.js';
 import languageRouter from './src/routes/LanguageRoutes.js';
 import learnerRouter from './src/routes/LearnerRoutes.js';
 import adminRouter from './src/routes/AdminRoutes.js';
+import visitorLogRouter from './src/routes/VisitorLogRoutes.js';
+import dashboardRouter from './src/routes/DashboardRoutes.js';
 
 // Konfigurasi untuk mendapatkan __dirname di ES Modules
 const __filename = fileURLToPath(import.meta.url);
@@ -56,6 +58,7 @@ app.use('/api/topics', topicsRouter);
 app.use('/api/languages', languageRouter);
 app.use('/api/learners', learnerRouter);
 app.use('/api/admins', adminRouter);
+app.use('/api/visitor-logs', visitorLogRouter);
 
 
 const options = {

@@ -13,7 +13,7 @@ const TopicSchema = new Schema({
     topicEntries: [{
         type: Schema.Types.ObjectId,
         ref: 'Entry',
-        autopopulate: true
+        //autopopulate: true
     }],
 });
 

@@ -7,13 +7,11 @@ const VisitorLogSchema = new Schema({
         type: Schema.Types.ObjectId,
         ref: 'Learner',
         required: [true, 'Pengunjung tidak boleh kosong'],
-        autopopulate: true
     },
     topic: {
         type: Schema.Types.ObjectId,
         ref: 'Topic',
         required: [true, 'Topik tidak boleh kosong'],
-        autopopulate: true
     },
     timestamp: {
         type: Date,
@@ -22,5 +20,4 @@ const VisitorLogSchema = new Schema({
     },
 });
 
-VisitorLogSchema.plugin(mongooseAutoPopulate);
-module.exports = mongoose.model("VisitorLog", VisitorLogSchema);
+export default mongoose.model('VisitorLog', VisitorLogSchema);

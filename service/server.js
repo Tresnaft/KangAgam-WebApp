@@ -59,6 +59,7 @@ app.use('/api/languages', languageRouter);
 app.use('/api/learners', learnerRouter);
 app.use('/api/admins', adminRouter);
 app.use('/api/visitor-logs', visitorLogRouter);
+app.use('/api/dashboard', dashboardRouter);
 
 
 const options = {

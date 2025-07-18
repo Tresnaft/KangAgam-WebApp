@@ -31,6 +31,7 @@ export const loginAdmin = async (req, res) => {
                 adminName: admin.adminName,
                 adminEmail: admin.adminEmail,
                 token: generateToken(admin._id),
+                role: 'admin' // FIX: Tambahkan properti 'role' di sini
             });
         } else {
             res.status(401).json({ message: "Email atau password salah." });

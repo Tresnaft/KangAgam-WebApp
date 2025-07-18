@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import adminService from '../services/adminService';
+import axios from 'axios';
 
 const logo = '/assets/images/logo-kang-agam.png';
 
@@ -46,14 +46,15 @@ const OnboardingPage = () => {
                 learnerPhone: formData.nomorTelepon,
                 learnerInstitution: formData.asalInstansi
             };
-            const response = await adminService.createLearner(learnerData);
-            console.log('Respons lengkap dari server:', response.data);
-            const userData = { ...learnerData, role: 'user' };
-            console.log('Logging in with user data:', userData);
+            const response = await axios.post('http://localhost:5000/api/learners', learnerData);
+            console.log('Respons dari server:', response.data);
+            const userData = { ...learnerData, role: 'user', _id: response.data.data._id };
             login(userData);
             // Tunggu state diperbarui
             setTimeout(() => {
-                if (!user) {
+                if (user) {
+                    navigate('/home', { replace: true });
+                } else {
                     console.warn('User state not updated, forcing navigation');
                     navigate('/home');
                 }

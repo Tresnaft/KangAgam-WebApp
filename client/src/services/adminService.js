@@ -1,15 +1,18 @@
 import axios from 'axios';
 
-// FIX: Arahkan API_URL langsung ke endpoint /admins
 const API_URL = 'http://localhost:5000/api/admins';
 
 const login = async (adminData) => {
-    // URL yang dipanggil sekarang akan benar: http://localhost:5000/api/admins/login
-    const response = await axios.post(API_URL + '/login', adminData);
-    if (response.data) {
-        localStorage.setItem('user', JSON.stringify(response.data));
+    try {
+        const response = await axios.post(`${API_URL}/login`, adminData);
+        if (response.data) {
+            localStorage.setItem('user', JSON.stringify(response.data));
+        }
+        return response.data;
+    } catch (error) {
+        console.error('Error login:', error);
+        throw error.response?.data || { message: 'Gagal login.' };
     }
-    return response.data;
 };
 
 const logout = () => {
@@ -17,32 +20,57 @@ const logout = () => {
 };
 
 const getAllAdmins = async (token) => {
-    const config = { headers: { Authorization: `Bearer ${token}` } };
-    const response = await axios.get(API_URL, config);
-    return response.data;
+    try {
+        const config = {
+            headers: { Authorization: `Bearer ${token}` },
+        };
+        const response = await axios.get(API_URL, config);
+        return response.data;
+    } catch (error) {
+        console.error('Error getAllAdmins:', error);
+        throw error.response?.data || { message: 'Gagal mengambil data admin.' };
+    }
 };
 
 const createAdmin = async (adminData, token) => {
-    const config = { headers: { Authorization: `Bearer ${token}` } };
-    const response = await axios.post(API_URL, adminData, config);
-    return response.data;
+    try {
+        console.log('Creating admin with data:', adminData);
+        const config = {
+            headers: { Authorization: `Bearer ${token}` },
+        };
+        const response = await axios.post(API_URL, adminData, config);
+        return response.data;
+    } catch (error) {
+        console.error('Error createAdmin:', error);
+        throw error.response?.data || { message: 'Gagal membuat admin.' };
+    }
 };
 
 const updateAdmin = async (id, adminData, token) => {
-    const config = { headers: { Authorization: `Bearer ${token}` } };
-    const response = await axios.put(`${API_URL}/${id}`, adminData, config);
-    return response.data;
+    try {
+        console.log('Updating admin ID:', id, 'with data:', adminData);
+        const config = {
+            headers: { Authorization: `Bearer ${token}` },
+        };
+        const response = await axios.put(`${API_URL}/${id}`, adminData, config);
+        return response.data;
+    } catch (error) {
+        console.error('Error updateAdmin:', error);
+        throw error.response?.data || { message: 'Gagal memperbarui admin.' };
+    }
 };
 
 const deleteAdmin = async (id, token) => {
-    const config = { headers: { Authorization: `Bearer ${token}` } };
-    const response = await axios.delete(`${API_URL}/${id}`, config);
-    return response.data;
-};
-
-const createLearner = async (learnerData) => {
-    const response = await axios.post('http://localhost:5000/api/learners', learnerData);
-    return response.data;
+    try {
+        const config = {
+            headers: { Authorization: `Bearer ${token}` },
+        };
+        const response = await axios.delete(`${API_URL}/${id}`, config);
+        return response.data;
+    } catch (error) {
+        console.error('Error deleteAdmin:', error);
+        throw error.response?.data || { message: 'Gagal menghapus admin.' };
+    }
 };
 
 const adminService = {
@@ -52,7 +80,6 @@ const adminService = {
     createAdmin,
     updateAdmin,
     deleteAdmin,
-    createLearner,
 };
 
 export default adminService;

@@ -10,19 +10,21 @@ import {
     resetPassword
 } from '../controllers/AdminController.js';
 
+import { protect, admin, superadmin } from '../middlewares/AuthMiddleware.js';
+
 const router = express.Router();
 
 router.post('/login', loginAdmin);
 
 router.route('/')
-    .post(createAdmin)
-    .get(getAllAdmins);
+    .post(protect, admin, createAdmin)
+    .get(protect, admin, getAllAdmins);
 
 router.route('/:id')
-    .put(updateAdmin)
-    .delete(deleteAdmin);
+    .put(protect, admin, updateAdmin)
+    .delete(protect, superadmin, deleteAdmin);
 
-router.put('/:id/change-password', changePassword);
+router.put('/:id/change-password', protect, admin, changePassword);
 
 router.post('/forgot-password', forgotPassword);
 router.put('/reset-password/:token', resetPassword);

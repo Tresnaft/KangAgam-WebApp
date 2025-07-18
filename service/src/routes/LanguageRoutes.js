@@ -4,6 +4,7 @@ import {
     getAllLanguages,
     deleteLanguage
 } from '../controllers/LanguageController.js';
+import { protect, admin } from '../middlewares/AuthMiddleware.js';
 
 const router = express.Router();
 
@@ -16,11 +17,11 @@ const router = express.Router();
 // POST akan membuat bahasa baru.
 router.route('/')
     .get(getAllLanguages)
-    .post(createLanguage);
+    .post(protect, admin, createLanguage);
 
 // Rute: /api/languages/:id
 // DELETE akan menghapus bahasa berdasarkan ID-nya.
 router.route('/:id')
-    .delete(deleteLanguage);
+    .delete(protect, admin, deleteLanguage);
 
 export default router;

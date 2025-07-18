@@ -41,7 +41,7 @@ const Sidebar = () => {
                     <NavLink to="/admin/manage-admins" className={({ isActive }) => isActive ? activeLinkClasses : navLinkClasses}>
                         <UsersIcon />
                     </NavLink>
-                    <NavLink to="#" className={navLinkClasses}>
+                    <NavLink to="/admin/statistics" className={({ isActive }) => isActive ? activeLinkClasses : navLinkClasses}>
                         <ChartIcon />
                     </NavLink>
                 </nav>

@@ -4,13 +4,16 @@ import Pagination from '../../components/ui/Pagination';
 import TopicFormModal from '../../components/admin/TopicFormModal';
 import ConfirmDeleteModal from '../../components/admin/ConfirmDeleteModal';
 import { getTopics, addTopic, updateTopic, deleteTopic } from '../../services/topicService';
+import { useAuth } from '../../context/AuthContext'; // 1. Import useAuth
 
 const ITEMS_PER_PAGE = 5;
 
+// Komponen Ikon
 const SearchIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>;
 const PlusIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" /></svg>;
 
 const ManageTopicsPage = () => {
+    const { user } = useAuth(); // 2. Dapatkan data user (termasuk token) dari context
     const [topicsData, setTopicsData] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState(null);
@@ -46,12 +49,21 @@ const ManageTopicsPage = () => {
     const handlePageChange = (pageNumber) => setCurrentPage(pageNumber);
     
     const handleFormSubmit = async (formData) => {
+        // 3. Ambil token dari user object
+        const token = user?.token;
+        if (!token) {
+            alert("Otentikasi gagal. Silakan login kembali.");
+            return;
+        }
+
         try {
             if (formModalState.mode === 'add') {
-                await addTopic(formData);
+                // 4. Kirim token ke service
+                await addTopic(formData, token);
                 alert('Topik berhasil ditambahkan!');
             } else if (formModalState.mode === 'edit') {
-                await updateTopic(formModalState.data._id, formData);
+                // 4. Kirim token ke service
+                await updateTopic(formModalState.data._id, formData, token);
                 alert('Topik berhasil diperbarui!');
             }
             fetchTopics();
@@ -64,8 +76,17 @@ const ManageTopicsPage = () => {
 
     const handleDeleteConfirm = async () => {
         if (!deleteModalTopic) return;
+        
+        // 3. Ambil token dari user object
+        const token = user?.token;
+        if (!token) {
+            alert("Otentikasi gagal. Silakan login kembali.");
+            return;
+        }
+
         try {
-            await deleteTopic(deleteModalTopic._id);
+            // 4. Kirim token ke service
+            await deleteTopic(deleteModalTopic._id, token);
             alert('Topik berhasil dihapus!');
             fetchTopics();
         } catch (err) {
@@ -96,39 +117,36 @@ const ManageTopicsPage = () => {
             ) : error ? (
                 <p className="text-red-500">{error}</p>
             ) : (
-                <div className="hidden lg:flex flex-col bg-white rounded-xl shadow-md min-h-[480px]">
-                    <div className="overflow-x-auto flex-grow">
-                        <table className="w-full text-left table-fixed">
-                            <thead className="bg-gray-100">
-                                <tr>
-                                    <th className="p-4 font-bold text-gray-600 w-[5%]">#</th>
-                                    <th className="p-4 font-bold text-gray-600 w-[35%]">Nama Topik</th>
-                                    <th className="p-4 font-bold text-gray-600 w-[20%]">Total Kosakata</th>
-                                    <th className="p-4 font-bold text-gray-600 text-center w-[40%]">Action</th>
+                <div className="bg-white rounded-xl shadow-md overflow-x-auto">
+                    <table className="w-full text-left min-w-[600px]">
+                        <thead className="bg-gray-100">
+                            <tr>
+                                <th className="p-4 font-bold text-gray-600 w-[5%]">#</th>
+                                <th className="p-4 font-bold text-gray-600 w-[35%]">Nama Topik</th>
+                                <th className="p-4 font-bold text-gray-600 w-[20%]">Total Kosakata</th>
+                                <th className="p-4 font-bold text-gray-600 text-center w-[40%]">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {currentItems.map((topic, index) => (
+                                <tr key={topic._id} className="border-b border-gray-200 hover:bg-gray-50">
+                                    <td className="p-4 text-gray-700">{indexOfFirstItem + index + 1}</td>
+                                    <td className="p-4 text-gray-800 font-semibold truncate">{topic.topicName || 'Tanpa Nama'}</td>
+                                    <td className="p-4 text-gray-700">{topic.topicEntries.length}</td>
+                                    <td className="p-4 flex justify-center items-center gap-2">
+                                        <Link 
+                                            to={`/admin/manage-topics/${topic._id}`}
+                                            className="bg-blue-100 text-blue-800 text-xs font-bold px-3 py-1.5 rounded-md hover:bg-blue-200"
+                                        >
+                                            Kosakata
+                                        </Link>
+                                        <button onClick={() => setFormModalState({ isOpen: true, mode: 'edit', data: topic })} className="bg-yellow-100 text-yellow-800 text-xs font-bold px-3 py-1.5 rounded-md hover:bg-yellow-200">Edit</button>
+                                        <button onClick={() => setDeleteModalTopic(topic)} className="bg-red-100 text-red-800 text-xs font-bold px-3 py-1.5 rounded-md hover:bg-red-200">Delete</button>
+                                    </td>
                                 </tr>
-                            </thead>
-                            <tbody>
-                                {currentItems.map((topic, index) => (
-                                    <tr key={topic._id} className="border-b border-gray-200 hover:bg-gray-50">
-                                        <td className="p-4 text-gray-700">{indexOfFirstItem + index + 1}</td>
-                                        <td className="p-4 text-gray-800 font-semibold truncate">{topic.topicName || 'Tanpa Nama'}</td>
-                                        <td className="p-4 text-gray-700">{topic.topicEntries.length}</td>
-                                        <td className="p-4 flex justify-center items-center gap-2">
-                                            {/* FIX: Menambahkan kembali tombol Kosakata */}
-                                            <Link 
-                                                to={`/admin/manage-topics/${topic._id}`}
-                                                className="bg-blue-100 text-blue-800 text-xs font-bold px-3 py-1.5 rounded-md hover:bg-blue-200"
-                                            >
-                                                Kosakata
-                                            </Link>
-                                            <button onClick={() => setFormModalState({ isOpen: true, mode: 'edit', data: topic })} className="bg-yellow-100 text-yellow-800 text-xs font-bold px-3 py-1.5 rounded-md hover:bg-yellow-200">Edit</button>
-                                            <button onClick={() => setDeleteModalTopic(topic)} className="bg-red-100 text-red-800 text-xs font-bold px-3 py-1.5 rounded-md hover:bg-red-200">Delete</button>
-                                        </td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                    </div>
+                            ))}
+                        </tbody>
+                    </table>
                     <div className="p-4 border-t border-gray-200">
                         <Pagination currentPage={currentPage} totalPages={totalPages} onPageChange={handlePageChange} totalItems={filteredTopics.length} />
                     </div>

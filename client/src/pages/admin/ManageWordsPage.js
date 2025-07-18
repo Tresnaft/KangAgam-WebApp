@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react'; // 1. Import useCallback
+import React, { useState, useEffect, useCallback } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import Pagination from '../../components/ui/Pagination';
 import WordFormModal from '../../components/admin/WordFormModal';
@@ -7,13 +7,16 @@ import ImageModal from '../../components/admin/ImageModal';
 import AudioPlayerModal from '../../components/admin/AudioPlayerModal';
 import { getEntriesByTopicId, addEntry, updateEntry, deleteEntry } from '../../services/entryService';
 import { getTopicById } from '../../services/topicService';
+import { useAuth } from '../../context/AuthContext'; // 1. Import useAuth
 
 const ITEMS_PER_PAGE = 5;
 
+// Komponen Ikon
 const SearchIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>;
 const PlusIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" /></svg>;
 
 const ManageWordsPage = () => {
+    const { user } = useAuth(); // 2. Dapatkan data user dari context
     const { topicId } = useParams();
     const [topicName, setTopicName] = useState('');
     const [wordsData, setWordsData] = useState([]);
@@ -29,7 +32,6 @@ const ManageWordsPage = () => {
     const [formModalState, setFormModalState] = useState({ isOpen: false, mode: 'add', data: null });
     const [deleteModalWord, setDeleteModalWord] = useState(null);
 
-    // 2. Bungkus fetchData dengan useCallback
     const fetchData = useCallback(async () => {
         try {
             setIsLoading(true);
@@ -47,12 +49,11 @@ const ManageWordsPage = () => {
         } finally {
             setIsLoading(false);
         }
-    }, [topicId]); // Tambahkan topicId sebagai dependensi
+    }, [topicId]);
 
-    // 3. Panggil fetchData di dalam useEffect
     useEffect(() => {
         fetchData();
-    }, [fetchData]); // Sekarang fetchData dijamin stabil
+    }, [fetchData]);
 
     const findVocab = (entry, lang) => {
         if (!entry || !entry.entryVocabularies) return 'N/A';
@@ -71,12 +72,21 @@ const ManageWordsPage = () => {
     const handlePageChange = (pageNumber) => setCurrentPage(pageNumber);
 
     const handleFormSubmit = async (formData) => {
+        // 3. Ambil token dari user object
+        const token = user?.token;
+        if (!token) {
+            alert("Otentikasi gagal. Silakan login kembali.");
+            return;
+        }
+
         try {
             if (formModalState.mode === 'add') {
-                await addEntry(topicId, formData);
+                // 4. Kirim token ke service
+                await addEntry(topicId, formData, token);
                 alert('Kosakata berhasil ditambahkan!');
             } else if (formModalState.mode === 'edit') {
-                await updateEntry(topicId, formModalState.data._id, formData);
+                // 4. Kirim token ke service
+                await updateEntry(topicId, formModalState.data._id, formData, token);
                 alert('Kosakata berhasil diperbarui!');
             }
             fetchData();
@@ -89,8 +99,17 @@ const ManageWordsPage = () => {
 
     const handleDeleteConfirm = async () => {
         if (!deleteModalWord) return;
+        
+        // 3. Ambil token dari user object
+        const token = user?.token;
+        if (!token) {
+            alert("Otentikasi gagal. Silakan login kembali.");
+            return;
+        }
+
         try {
-            await deleteEntry(topicId, deleteModalWord._id);
+            // 4. Kirim token ke service
+            await deleteEntry(topicId, deleteModalWord._id, token);
             alert('Kosakata berhasil dihapus!');
             fetchData();
         } catch (err) {
@@ -128,43 +147,41 @@ const ManageWordsPage = () => {
             ) : error ? (
                 <p className="text-red-500">{error}</p>
             ) : (
-                <div className="hidden lg:flex flex-col bg-white rounded-xl shadow-md min-h-[480px]">
-                    <div className="overflow-x-auto flex-grow">
-                        <table className="w-full text-left table-fixed">
-                            <thead className="bg-gray-100">
-                                <tr>
-                                    <th className="p-4 font-bold text-gray-600 w-[5%]">#</th>
-                                    <th className="p-4 font-bold text-gray-600 w-[18%]">Indonesia</th>
-                                    <th className="p-4 font-bold text-gray-600 w-[18%]">Sunda</th>
-                                    <th className="p-4 font-bold text-gray-600 w-[18%]">Inggris</th>
-                                    <th className="p-4 font-bold text-gray-600 w-[12%]">Gambar</th>
-                                    <th className="p-4 font-bold text-gray-600 w-[12%]">Audio</th>
-                                    <th className="p-4 font-bold text-gray-600 text-center w-[17%]">Action</th>
+                <div className="bg-white rounded-xl shadow-md overflow-x-auto">
+                    <table className="w-full text-left min-w-[800px]">
+                        <thead className="bg-gray-100">
+                            <tr>
+                                <th className="p-4 font-bold text-gray-600 w-[5%]">#</th>
+                                <th className="p-4 font-bold text-gray-600 w-[18%]">Indonesia</th>
+                                <th className="p-4 font-bold text-gray-600 w-[18%]">Sunda</th>
+                                <th className="p-4 font-bold text-gray-600 w-[18%]">Inggris</th>
+                                <th className="p-4 font-bold text-gray-600 w-[12%]">Gambar</th>
+                                <th className="p-4 font-bold text-gray-600 w-[12%]">Audio</th>
+                                <th className="p-4 font-bold text-gray-600 text-center w-[17%]">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {currentItems.map((entry, index) => (
+                                <tr key={entry._id} className="border-b border-gray-200 hover:bg-gray-50">
+                                    <td className="p-4 text-gray-700">{indexOfFirstItem + index + 1}</td>
+                                    <td className="p-4 text-gray-800 font-semibold truncate">{findVocab(entry, 'id')}</td>
+                                    <td className="p-4 text-gray-800 truncate">{findVocab(entry, 'su')}</td>
+                                    <td className="p-4 text-gray-800 truncate">{findVocab(entry, 'en')}</td>
+                                    <td className="p-4">
+                                        <button onClick={() => setImageModalUrl(`http://localhost:5000${entry.entryImagePath}`)} className="text-blue-600 hover:underline text-sm">Lihat Gambar</button>
+                                    </td>
+                                    <td className="p-4">
+                                        <button onClick={() => setAudioModalEntry(entry)} className="text-blue-600 hover:underline text-sm">Putar Audio</button>
+                                    </td>
+                                    <td className="p-4 flex justify-center items-center gap-2">
+                                        <button onClick={() => setFormModalState({ isOpen: true, mode: 'edit', data: entry })} className="bg-yellow-100 text-yellow-800 text-xs font-bold px-3 py-1.5 rounded-md hover:bg-yellow-200">Edit</button>
+                                        <button onClick={() => setDeleteModalWord(entry)} className="bg-red-100 text-red-800 text-xs font-bold px-3 py-1.5 rounded-md hover:bg-red-200">Delete</button>
+                                    </td>
                                 </tr>
-                            </thead>
-                            <tbody>
-                                {currentItems.map((entry, index) => (
-                                    <tr key={entry._id} className="border-b border-gray-200 hover:bg-gray-50">
-                                        <td className="p-4 text-gray-700">{indexOfFirstItem + index + 1}</td>
-                                        <td className="p-4 text-gray-800 font-semibold truncate">{findVocab(entry, 'id')}</td>
-                                        <td className="p-4 text-gray-800 truncate">{findVocab(entry, 'su')}</td>
-                                        <td className="p-4 text-gray-800 truncate">{findVocab(entry, 'en')}</td>
-                                        <td className="p-4">
-                                            <button onClick={() => setImageModalUrl(`http://localhost:5000${entry.entryImagePath}`)} className="text-blue-600 hover:underline text-sm">Lihat Gambar</button>
-                                        </td>
-                                        <td className="p-4">
-                                            <button onClick={() => setAudioModalEntry(entry)} className="text-blue-600 hover:underline text-sm">Putar Audio</button>
-                                        </td>
-                                        <td className="p-4 flex justify-center items-center gap-2">
-                                            <button onClick={() => setFormModalState({ isOpen: true, mode: 'edit', data: entry })} className="bg-yellow-100 text-yellow-800 text-xs font-bold px-3 py-1.5 rounded-md hover:bg-yellow-200">Edit</button>
-                                            <button onClick={() => setDeleteModalWord(entry)} className="bg-red-100 text-red-800 text-xs font-bold px-3 py-1.5 rounded-md hover:bg-red-200">Delete</button>
-                                        </td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                    </div>
-                    <div className="p-4 border-t border-gray-200">
+                            ))}
+                        </tbody>
+                    </table>
+                     <div className="p-4 border-t border-gray-200">
                         <Pagination currentPage={currentPage} totalPages={totalPages} onPageChange={handlePageChange} totalItems={filteredWords.length} />
                     </div>
                 </div>

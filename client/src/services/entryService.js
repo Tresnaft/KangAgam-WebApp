@@ -2,29 +2,29 @@ import axios from 'axios';
 
 const API_URL = 'http://localhost:5000/api';
 
-/**
- * Mengambil semua entri (kosakata) untuk sebuah topik berdasarkan ID Topik.
- */
+// Fungsi ini publik, tidak perlu token
 export const getEntriesByTopicId = async (topicId) => {
-  try {
-    const response = await axios.get(`${API_URL}/topics/${topicId}/entries`);
-    return response.data;
-  } catch (error) {
-    console.error(`Error fetching entries for topic ${topicId}:`, error);
-    throw error;
-  }
+    try {
+        const response = await axios.get(`${API_URL}/topics/${topicId}/entries`);
+        return response.data;
+    } catch (error) {
+        console.error(`Error fetching entries for topic ${topicId}:`, error);
+        throw error;
+    }
 };
 
-/**
- * Menambahkan entri baru (kosakata) ke sebuah topik.
- */
-export const addEntry = async (topicId, formData) => {
+// --- FUNGSI YANG MEMERLUKAN TOKEN ---
+
+export const addEntry = async (topicId, formData, token) => {
     try {
-        const response = await axios.post(`${API_URL}/topics/${topicId}/entries`, formData, {
+        // 1. Buat config untuk menyertakan token
+        const config = {
             headers: {
-                'Content-Type': 'multipart/form-data'
+                'Content-Type': 'multipart/form-data',
+                Authorization: `Bearer ${token}`,
             }
-        });
+        };
+        const response = await axios.post(`${API_URL}/topics/${topicId}/entries`, formData, config);
         return response.data;
     } catch (error) {
         console.error('Error adding entry:', error);
@@ -32,20 +32,16 @@ export const addEntry = async (topicId, formData) => {
     }
 };
 
-/**
- * Mengupdate entri yang sudah ada.
- * @param {string} topicId - ID dari topik induk.
- * @param {string} entryId - ID dari entri yang akan diupdate.
- * @param {FormData} formData - Data baru untuk entri.
- */
-export const updateEntry = async (topicId, entryId, formData) => {
+export const updateEntry = async (topicId, entryId, formData, token) => {
     try {
-        // FIX: Menggunakan URL nested yang benar
-        const response = await axios.put(`${API_URL}/topics/${topicId}/entries/${entryId}`, formData, {
+        // 1. Buat config untuk menyertakan token
+        const config = {
             headers: {
-                'Content-Type': 'multipart/form-data'
+                'Content-Type': 'multipart/form-data',
+                Authorization: `Bearer ${token}`,
             }
-        });
+        };
+        const response = await axios.put(`${API_URL}/topics/${topicId}/entries/${entryId}`, formData, config);
         return response.data;
     } catch (error) {
         console.error(`Error updating entry ${entryId}:`, error);
@@ -53,15 +49,15 @@ export const updateEntry = async (topicId, entryId, formData) => {
     }
 };
 
-/**
- * Menghapus entri berdasarkan ID.
- * @param {string} topicId - ID dari topik induk.
- * @param {string} entryId - ID dari entri yang akan dihapus.
- */
-export const deleteEntry = async (topicId, entryId) => {
+export const deleteEntry = async (topicId, entryId, token) => {
     try {
-        // FIX: Menggunakan URL nested yang benar
-        const response = await axios.delete(`${API_URL}/topics/${topicId}/entries/${entryId}`);
+        // 1. Buat config untuk menyertakan token
+        const config = {
+            headers: {
+                Authorization: `Bearer ${token}`,
+            }
+        };
+        const response = await axios.delete(`${API_URL}/topics/${topicId}/entries/${entryId}`, config);
         return response.data;
     } catch (error) {
         console.error(`Error deleting entry ${entryId}:`, error);

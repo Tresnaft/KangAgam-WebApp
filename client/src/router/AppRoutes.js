@@ -15,6 +15,8 @@ import AdminDashboard from '../pages/admin/AdminDashboard';
 import ManageTopicsPage from '../pages/admin/ManageTopicsPage';
 import ManageWordsPage from '../pages/admin/ManageWordsPage';
 import ManageAdminsPage from '../pages/admin/ManageAdminsPage';
+import StatisticsPage from '../pages/admin/StatisticsPage';
+
 
 const NotFoundPage = () => (
     <div className="flex items-center justify-center min-h-screen">
@@ -49,7 +51,7 @@ const AnimatedRoutes = () => {
                         <Route path="manage-topics" element={<ManageTopicsPage />} />
                         <Route path="manage-topics/:topicId" element={<ManageWordsPage />} />
                         <Route path="manage-admins" element={<ManageAdminsPage />} />
-                        <Route path="manage-topics/:topicId" element={<ManageWordsPage />} />
+                        <Route path="statistics" element={<StatisticsPage />} />
                     </Route>
                 </Route>
                 

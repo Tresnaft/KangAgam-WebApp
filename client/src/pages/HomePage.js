@@ -6,7 +6,9 @@ import { motion } from 'framer-motion';
 import TopicCard from '../components/ui/TopicCard';
 import PageHeader from '../components/ui/PageHeader';
 import LoadingIndicator from '../components/ui/LoadingIndicator';
-import { getTopics } from '../services/topicService'; // 1. Pastikan service di-import
+import { getTopics } from '../services/topicService';
+import { useAuth } from '../context/AuthContext'; // 1. Import useAuth
+import { logVisit } from '../services/visitorLogService'; // 2. Import service baru
 
 // Varian animasi halaman
 const pageVariants = {
@@ -23,13 +25,12 @@ const pageTransition = {
 const HomePage = () => {
     const { t, i18n } = useTranslation();
     const navigate = useNavigate();
+    const { user } = useAuth(); // 3. Dapatkan data user (learner)
     
-    // 2. State untuk menampung data dari API dan status loading/error
     const [topics, setTopics] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState(null);
 
-    // 3. useEffect untuk mengambil data dari backend saat komponen dimuat atau bahasa berubah
     useEffect(() => {
         const fetchTopics = async () => {
             try {
@@ -46,9 +47,20 @@ const HomePage = () => {
         };
 
         fetchTopics();
-    }, [i18n.language]); // Dependensi pada i18n.language agar data di-fetch ulang saat bahasa diganti
+    }, [i18n.language]);
 
+    // 4. Modifikasi handleTopicClick
     const handleTopicClick = (topicId) => {
+        // Pastikan kita punya ID pengguna sebelum mencatat
+        if (user && user._id) {
+            // Kirim log ke backend tanpa menunggu hasilnya (fire and forget)
+            // agar tidak memperlambat navigasi pengguna.
+            logVisit({
+                learnerId: user._id,
+                topicId: topicId,
+            });
+        }
+        // Langsung navigasi tanpa menunggu log selesai
         navigate(`/topik/${topicId}`);
     };
     
@@ -72,12 +84,10 @@ const HomePage = () => {
                     <p className="text-center text-red-500">{error}</p>
                 ) : (
                     <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 sm:gap-6">
-                        {/* 4. Map data dari state 'topics', bukan dari MOCK_TOPICS */}
                         {topics.map((topic) => (
                             <TopicCard 
                                 key={topic._id}
                                 title={topic.topicName}
-                                // 5. Tambahkan URL base backend ke path gambar
                                 imageUrl={`http://localhost:5000${topic.topicImagePath}`}
                                 onClick={() => handleTopicClick(topic._id)}
                             />

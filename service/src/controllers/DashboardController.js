@@ -43,13 +43,52 @@ export const getDashboardStats = async (req, res) => {
 
         // C. Asal Instansi Terbanyak (menggunakan filter 'institutionPeriod')
         const mostFrequentInstitution = await VisitorLog.aggregate([
+            // Langkah 1: Filter log kunjungan berdasarkan periode yang dipilih
+            // (Tahap ini tetap sama)
             { $match: institutionDateFilter },
-            { $lookup: { from: "learners", localField: "learner", foreignField: "_id", as: "learnerDetails" } },
+
+            // Langkah 2: Kelompokkan berdasarkan ID learner untuk mendapatkan pengunjung unik
+            // Ini adalah langkah kunci yang baru. Sekarang setiap learner hanya akan muncul sekali.
+            {
+                $group: {
+                    _id: "$learner" // Mengelompokkan semua log berdasarkan ID learner
+                }
+            },
+
+            // Langkah 3: Ambil detail untuk setiap learner unik tersebut
+            // Kita ganti 'localField' menjadi '_id' karena hasil dari $group adalah _id
+            { 
+                $lookup: {
+                    from: "learners",
+                    localField: "_id", // <-- Perubahan di sini
+                    foreignField: "_id",
+                    as: "learnerDetails"
+                }
+            },
+            
+            // Langkah 4: Unwind data learner
             { $unwind: "$learnerDetails" },
-            { $group: { _id: { $toLower: "$learnerDetails.learnerInstitution" }, count: { $sum: 1 } } },
-            { $sort: { count: -1 } },
+
+            // Langkah 5: Sekarang, kelompokkan berdasarkan institusi dari learner unik
+            { 
+                $group: {
+                    _id: { $toLower: "$learnerDetails.learnerInstitution" },
+                    uniqueVisitorCount: { $sum: 1 } // Hitung jumlah PENGUNJUNG unik per institusi
+                }
+            },
+            
+            // Langkah 6 & 7: Urutkan dan ambil yang teratas (tetap sama)
+            { $sort: { uniqueVisitorCount: -1 } },
             { $limit: 1 },
-            { $project: { _id: 0, name: "$_id", count: "$count" } }
+
+            // Langkah 8: Format output
+            { 
+                $project: {
+                    _id: 0,
+                    name: "$_id",
+                    count: "$uniqueVisitorCount" // Ganti nama field agar sesuai
+                }
+            }
         ]);
 
         res.status(200).json({

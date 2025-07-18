@@ -15,19 +15,31 @@ export const createLearner = async (req, res) => {
             return res.status(400).json({ message: 'Semua field (nama, telepon, lembaga) harus diisi.' });
         }
 
+        // --- Langkah 1: Cari learner dengan nama DAN nomor telepon yang sama ---
+        const existingLearner = await Learner.findOne({ learnerName, learnerPhone });
+
+        // --- Langkah 2: Jika sudah ada, kembalikan data yang ada ---
+        if (existingLearner) {
+            return res.status(200).json({ // Gunakan status 200 OK karena kita tidak membuat data baru
+                message: 'Learner dengan data ini sudah terdaftar. Menggunakan data yang ada.',
+                data: existingLearner
+            });
+        }
+
+        // --- Langkah 3: Jika tidak ada, buat learner baru ---
         const newLearner = await Learner.create({
             learnerName,
             learnerPhone,
             learnerInstitution
         });
 
-        res.status(201).json({
+        res.status(201).json({ // Gunakan status 201 Created karena ini data baru
             message: 'Learner berhasil dibuat.',
             data: newLearner
         });
 
     } catch (error) {
-        res.status(500).json({ message: 'Gagal membuat learner.', error: error.message });
+        res.status(500).json({ message: 'Gagal memproses data learner.', error: error.message });
     }
 };
 

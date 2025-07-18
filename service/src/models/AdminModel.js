@@ -25,6 +25,11 @@ const AdminSchema = new Schema({
         minlength: 8,
         select: false, 
     },
+    role: {
+        type: String,
+        enum: ['admin', 'superadmin'], 
+        default: 'admin'              
+    },
     passwordResetToken: String,
     passwordResetExpires: Date,
 });

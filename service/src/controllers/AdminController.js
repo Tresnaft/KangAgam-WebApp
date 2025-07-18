@@ -123,13 +123,25 @@ export const updateAdmin = async (req, res) => {
 export const deleteAdmin = async (req, res) => {
     try {
         const { id } = req.params;
-        const admin = await Admin.findByIdAndDelete(id);
 
-        if (!admin) {
+        // 1. Cari admin yang akan dihapus
+        const adminToDelete = await Admin.findById(id);
+
+        if (!adminToDelete) {
             return res.status(404).json({ message: "Admin tidak ditemukan." });
         }
 
+        // 2. ✅ LAKUKAN PENGECEKAN PERAN (ROLE)
+        if (adminToDelete.role === 'superadmin') {
+            // Jika rolenya 'superadmin', tolak penghapusan
+            return res.status(403).json({ message: "Akses ditolak: Superadmin tidak dapat dihapus." });
+        }
+
+        // 3. Jika bukan superadmin, lanjutkan proses penghapusan
+        await Admin.findByIdAndDelete(id);
+
         res.status(200).json({ message: "Admin berhasil dihapus." });
+        
     } catch (error) {
         res.status(500).json({ message: "Gagal menghapus admin.", error: error.message });
     }

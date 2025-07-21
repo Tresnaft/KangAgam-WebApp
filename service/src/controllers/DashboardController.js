@@ -72,7 +72,7 @@ export const getDashboardStats = async (req, res) => {
             // Langkah 5: Sekarang, kelompokkan berdasarkan institusi dari learner unik
             { 
                 $group: {
-                    _id: { $toLower: "$learnerDetails.learnercity" },
+                    _id: { $toLower: "$learnerDetails.learnerCity" },
                     uniqueVisitorCount: { $sum: 1 } // Hitung jumlah PENGUNJUNG unik per institusi
                 }
             },

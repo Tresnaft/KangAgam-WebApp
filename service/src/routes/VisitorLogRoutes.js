@@ -1,7 +1,8 @@
 import express from 'express';
 import {
     createVisitorLog,
-    getAllVisitorLogs
+    getAllVisitorLogs,
+    getVisitorStats
 } from '../controllers/VisitorLogController.js';
 
 const router = express.Router();
@@ -10,5 +11,8 @@ const router = express.Router();
 router.route('/')
     .post(createVisitorLog)
     .get(getAllVisitorLogs);
+
+router.route('/stats')
+    .get(getVisitorStats);
 
 export default router;

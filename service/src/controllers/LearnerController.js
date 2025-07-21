@@ -8,9 +8,9 @@ import mongoose from 'mongoose';
  */
 export const createLearner = async (req, res) => {
     try {
-        const { learnerName, learnerPhone, learnerInstitution } = req.body;
+        const { learnerName, learnerPhone, learnerCity } = req.body;
 
-        if (!learnerName || !learnerPhone || !learnerInstitution) {
+        if (!learnerName || !learnerPhone || !learnerCity) {
             return res.status(400).json({ message: 'Semua field (nama, telepon, lembaga) harus diisi.' });
         }
 
@@ -32,7 +32,7 @@ export const createLearner = async (req, res) => {
         const newLearner = await Learner.create({
             learnerName,
             learnerPhone,
-            learnerInstitution
+            learnerCity
         });
 
         res.status(201).json({
@@ -96,7 +96,7 @@ export const getLearnerById = async (req, res) => {
 export const updateLearner = async (req, res) => {
     try {
         const { id } = req.params;
-        const { learnerName, learnerPhone, learnerInstitution } = req.body;
+        const { learnerName, learnerPhone, learnerCity } = req.body;
 
         if (!mongoose.Types.ObjectId.isValid(id)) {
             return res.status(400).json({ message: 'ID tidak valid.' });
@@ -104,7 +104,7 @@ export const updateLearner = async (req, res) => {
 
         const updatedLearner = await Learner.findByIdAndUpdate(
             id,
-            { learnerName, learnerPhone, learnerInstitution },
+            { learnerName, learnerPhone, learnerCity },
             { new: true, runValidators: true } // 'new: true' untuk mengembalikan dokumen yang sudah diupdate
         );
 

@@ -17,9 +17,9 @@ const LearnerSchema = new Schema({
         minlength: 10,
         maxlength: 15,
     },
-    learnerInstitution: {
+    learnerCity: {
         type: String,
-        required: [true, 'Asal Lembaga tidak boleh kosong'],
+        required: [true, 'Asal Kabupaten/Kota tidak boleh kosong'],
         trim: true,
     },
 });

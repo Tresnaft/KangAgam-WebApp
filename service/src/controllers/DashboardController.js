@@ -11,11 +11,11 @@ import mongoose from 'mongoose';
 export const getDashboardStats = async (req, res) => {
     try {
         // --- 1. Ambil parameter filter yang lebih spesifik ---
-        const { visitorsPeriod, institutionPeriod, topicMonth } = req.query;
+        const { visitorsPeriod, cityPeriod, topicMonth } = req.query;
 
         // --- 2. Buat filter untuk setiap statistik secara terpisah ---
         const visitorsDateFilter = createDateFilter(visitorsPeriod);
-        const institutionDateFilter = createDateFilter(institutionPeriod);
+        const cityDateFilter = createDateFilter(cityPeriod);
 
         // --- 3. Kalkulasi Statistik ---
 
@@ -41,11 +41,11 @@ export const getDashboardStats = async (req, res) => {
             { $project: { _id: 0, topicId: "$_id", name: "$topicDetails.topicName", count: "$count" } }
         ]);
 
-        // C. Asal Instansi Terbanyak (menggunakan filter 'institutionPeriod')
-        const mostFrequentInstitution = await VisitorLog.aggregate([
+        // C. Asal Instansi Terbanyak (menggunakan filter 'cityPeriod')
+        const mostFrequentcity = await VisitorLog.aggregate([
             // Langkah 1: Filter log kunjungan berdasarkan periode yang dipilih
             // (Tahap ini tetap sama)
-            { $match: institutionDateFilter },
+            { $match: cityDateFilter },
 
             // Langkah 2: Kelompokkan berdasarkan ID learner untuk mendapatkan pengunjung unik
             // Ini adalah langkah kunci yang baru. Sekarang setiap learner hanya akan muncul sekali.
@@ -72,7 +72,7 @@ export const getDashboardStats = async (req, res) => {
             // Langkah 5: Sekarang, kelompokkan berdasarkan institusi dari learner unik
             { 
                 $group: {
-                    _id: { $toLower: "$learnerDetails.learnerInstitution" },
+                    _id: { $toLower: "$learnerDetails.learnercity" },
                     uniqueVisitorCount: { $sum: 1 } // Hitung jumlah PENGUNJUNG unik per institusi
                 }
             },
@@ -94,7 +94,7 @@ export const getDashboardStats = async (req, res) => {
         res.status(200).json({
             totalVisitors,
             favoriteTopic: topicVisitDistribution[0] || {},
-            mostFrequentInstitution: mostFrequentInstitution[0] || {},
+            mostFrequentcity: mostFrequentcity[0] || {},
         });
 
     } catch (error) {

@@ -95,19 +95,35 @@ export const getAllAdmins = async (req, res) => {
  */
 export const updateAdmin = async (req, res) => {
     try {
-        const { id } = req.params;
-        const { adminName, adminEmail } = req.body;
+        const { id: targetAdminId } = req.params; // ID admin yang akan di-update
+        const { adminName, adminEmail, role } = req.body; // Ambil 'role' dari body
+        
+        const loggedInAdmin = req.admin; // Admin yang sedang login
 
-        const admin = await Admin.findById(id);
+        // Otorisasi: Izinkan jika superadmin ATAU jika mengedit diri sendiri
+        if (loggedInAdmin.role !== 'superadmin' && loggedInAdmin._id.toString() !== targetAdminId) {
+            return res.status(403).json({ message: "Akses ditolak: Anda hanya dapat mengedit data diri sendiri." });
+        }
 
-        if (admin) {
-            admin.adminName = adminName || admin.adminName;
-            admin.adminEmail = adminEmail || admin.adminEmail;
+        const adminToUpdate = await Admin.findById(targetAdminId);
+
+        if (adminToUpdate) {
+            // Update nama dan email (jika ada di body)
+            adminToUpdate.adminName = adminName || adminToUpdate.adminName;
+            adminToUpdate.adminEmail = adminEmail || adminToUpdate.adminEmail;
+
+            // --- ✅ Logika Baru untuk Perubahan Role ---
+            // Hanya superadmin yang bisa mengubah role
+            if (loggedInAdmin.role === 'superadmin' && role) {
+                // Pengaman: Superadmin tidak boleh menurunkan perannya sendiri
+                if (loggedInAdmin._id.toString() === targetAdminId && role !== 'superadmin') {
+                    return res.status(400).json({ message: 'Superadmin tidak dapat menurunkan perannya sendiri.' });
+                }
+                adminToUpdate.role = role;
+            }
+            // -----------------------------------------
             
-            // Password tidak diupdate di sini untuk keamanan.
-            // Buat fungsi terpisah 'changePassword' jika diperlukan.
-
-            const updatedAdmin = await admin.save();
+            const updatedAdmin = await adminToUpdate.save();
             res.status(200).json({ message: "Admin berhasil diperbarui.", data: updatedAdmin });
         } else {
             res.status(404).json({ message: "Admin tidak ditemukan." });

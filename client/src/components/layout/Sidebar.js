@@ -11,6 +11,8 @@ const BookIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-
 const UsersIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M15 21a6 6 0 00-9-5.197m0 0A5.995 5.995 0 0012 12.75a5.995 5.995 0 00-3-5.197" /></svg>;
 const ChartIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" /></svg>;
 const LogoutIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" /></svg>;
+const UserCircleIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M5.121 17.804A13.937 13.937 0 0112 16c2.5 0 4.847.655 6.879 1.804M15 10a3 3 0 11-6 0 3 3 0 016 0z" /></svg>;
+
 
 const Sidebar = () => {
     const { logout } = useAuth();
@@ -21,7 +23,6 @@ const Sidebar = () => {
         navigate('/admin/login');
     };
 
-    // Menggunakan class warna semantik dari tailwind.config.js
     const navLinkClasses = "p-3 rounded-lg text-text-secondary hover:bg-background";
     const activeLinkClasses = "p-3 rounded-lg bg-primary/10 text-primary";
 
@@ -40,6 +41,9 @@ const Sidebar = () => {
                     </NavLink>
                     <NavLink to="/admin/manage-admins" className={({ isActive }) => isActive ? activeLinkClasses : navLinkClasses} title="Kelola Admin">
                         <UsersIcon />
+                    </NavLink>
+                    <NavLink to="/admin/manage-learners" className={({ isActive }) => isActive ? activeLinkClasses : navLinkClasses} title="Kelola Pengguna">
+                        <UserCircleIcon />
                     </NavLink>
                     <NavLink to="/admin/statistics" className={({ isActive }) => isActive ? activeLinkClasses : navLinkClasses} title="Statistik">
                         <ChartIcon />

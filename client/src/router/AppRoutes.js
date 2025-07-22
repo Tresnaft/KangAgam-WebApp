@@ -16,6 +16,7 @@ import ManageTopicsPage from '../pages/admin/ManageTopicsPage';
 import ManageWordsPage from '../pages/admin/ManageWordsPage';
 import ManageAdminsPage from '../pages/admin/ManageAdminsPage';
 import StatisticsPage from '../pages/admin/StatisticsPage';
+import ManageLearnersPage from '../pages/admin/ManageLearnersPage';
 
 
 const NotFoundPage = () => (
@@ -52,6 +53,7 @@ const AnimatedRoutes = () => {
                         <Route path="manage-topics/:topicId" element={<ManageWordsPage />} />
                         <Route path="manage-admins" element={<ManageAdminsPage />} />
                         <Route path="statistics" element={<StatisticsPage />} />
+                        <Route path="manage-learners" element={<ManageLearnersPage />} />
                     </Route>
                 </Route>
                 

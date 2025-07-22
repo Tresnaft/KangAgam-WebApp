@@ -8,32 +8,69 @@ const CloseIcon = () => (
 );
 
 const TopicFormModal = ({ isOpen, onClose, onSubmit, mode, initialData }) => {
-    const [name, setName] = useState('');
+    const [topicNames, setTopicNames] = useState({ id: '', su: '', en: '' });
     const [status, setStatus] = useState('Published');
     const [imageFile, setImageFile] = useState(null);
+    const [error, setError] = useState('');
 
     useEffect(() => {
         if (isOpen) {
+            // --- DEBUGGING DIMULAI DI SINI ---
+            // Kita akan log `initialData` untuk melihat strukturnya saat mode 'edit'
+            if (mode === 'edit') {
+                console.log("Data yang diterima oleh Modal:", initialData);
+            }
+            // --- DEBUGGING SELESAI ---
+
             if (mode === 'edit' && initialData) {
-                setName(initialData.topicName || '');
+                const names = { id: '', su: '', en: '' };
+                
+                // --- PERBAIKAN LOGIKA ---
+                // Kita akan menggunakan 'allTopicNames' yang dikirim dari API
+                const namesArray = initialData.allTopicNames || initialData.topicName;
+
+                if (Array.isArray(namesArray)) {
+                    namesArray.forEach(item => {
+                        if (names.hasOwnProperty(item.lang)) {
+                            names[item.lang] = item.value;
+                        }
+                    });
+                }
+                // -------------------------
+
+                setTopicNames(names);
                 setStatus(initialData.status || 'Published');
             } else {
-                setName('');
+                setTopicNames({ id: '', su: '', en: '' });
                 setStatus('Published');
                 setImageFile(null);
             }
+            setError('');
         }
     }, [isOpen, mode, initialData]);
 
+    const handleNameChange = (lang, value) => {
+        setTopicNames(prev => ({ ...prev, [lang]: value }));
+    };
+
     const handleSubmit = (e) => {
         e.preventDefault();
+        if (!topicNames.id) {
+            setError('Nama Topik dalam Bahasa Indonesia wajib diisi.');
+            return;
+        }
         if (mode === 'add' && !imageFile) {
-            alert('Silakan pilih gambar untuk topik.');
+            setError('Silakan pilih gambar untuk topik.');
             return;
         }
         
         const formData = new FormData();
-        formData.append('topicName', name);
+        
+        const topicNamesArray = Object.keys(topicNames)
+            .filter(lang => topicNames[lang])
+            .map(lang => ({ lang, value: topicNames[lang] }));
+
+        formData.append('topicNames', JSON.stringify(topicNamesArray));
         formData.append('status', status);
         if (imageFile) {
             formData.append('topicImage', imageFile);
@@ -52,42 +89,54 @@ const TopicFormModal = ({ isOpen, onClose, onSubmit, mode, initialData }) => {
                 >
                     <motion.div
                         initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }}
-                        className="bg-white rounded-2xl shadow-xl w-full max-w-md"
+                        className="bg-background-secondary rounded-2xl shadow-xl w-full max-w-md"
                         onClick={(e) => e.stopPropagation()}
                     >
                         <form onSubmit={handleSubmit}>
-                            <header className="flex items-center justify-between p-6 border-b">
-                                <h2 className="text-xl font-bold text-gray-800">
+                            <header className="flex items-center justify-between p-6 border-b border-background">
+                                <h2 className="text-xl font-bold text-text">
                                     {mode === 'edit' ? 'Edit Topik' : 'Tambah Topik'}
                                 </h2>
-                                <button type="button" onClick={onClose} className="p-1 rounded-full hover:bg-gray-100"><CloseIcon /></button>
+                                <button type="button" onClick={onClose} className="p-1 rounded-full hover:bg-background"><CloseIcon /></button>
                             </header>
 
                             <main className="p-6 space-y-4">
+                                {error && <p className="text-red-500 text-sm">{error}</p>}
+                                
                                 <div>
-                                    <label htmlFor="name" className="block text-sm font-medium text-gray-600 mb-1">Nama Topik</label>
-                                    <input type="text" id="name" value={name} onChange={(e) => setName(e.target.value)}
-                                        className="w-full px-4 py-2.5 border border-gray-300 rounded-lg" required />
+                                    <label htmlFor="name-id" className="block text-sm font-medium text-text-secondary mb-1">Nama Topik (Indonesia)</label>
+                                    <input type="text" id="name-id" value={topicNames.id} onChange={(e) => handleNameChange('id', e.target.value)}
+                                        className="w-full px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg bg-background text-text" required />
+                                </div>
+                                <div>
+                                    <label htmlFor="name-su" className="block text-sm font-medium text-text-secondary mb-1">Nama Topik (Sunda)</label>
+                                    <input type="text" id="name-su" value={topicNames.su} onChange={(e) => handleNameChange('su', e.target.value)}
+                                        className="w-full px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg bg-background text-text" />
+                                </div>
+                                <div>
+                                    <label htmlFor="name-en" className="block text-sm font-medium text-text-secondary mb-1">Nama Topik (Inggris)</label>
+                                    <input type="text" id="name-en" value={topicNames.en} onChange={(e) => handleNameChange('en', e.target.value)}
+                                        className="w-full px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg bg-background text-text" />
                                 </div>
                                 
                                 <div>
-                                    <label htmlFor="topicImage" className="block text-sm font-medium text-gray-600 mb-1">Gambar Topik (Opsional saat edit)</label>
+                                    <label htmlFor="topicImage" className="block text-sm font-medium text-text-secondary mb-1">Gambar Topik {mode === 'edit' && '(Opsional)'}</label>
                                     <input type="file" id="topicImage" name="topicImage" accept="image/*" onChange={(e) => setImageFile(e.target.files[0])}
-                                        className="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-violet-50 file:text-violet-700 hover:file:bg-violet-100"/>
+                                        className="w-full text-sm text-text-secondary file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-primary/10 file:text-primary hover:file:bg-primary/20"/>
                                 </div>
 
                                 <div>
-                                    <label htmlFor="status" className="block text-sm font-medium text-gray-600 mb-1">Status</label>
+                                    <label htmlFor="status" className="block text-sm font-medium text-text-secondary mb-1">Status</label>
                                     <select id="status" value={status} onChange={(e) => setStatus(e.target.value)}
-                                        className="w-full px-4 py-2.5 border border-gray-300 rounded-lg">
+                                        className="w-full px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg bg-background text-text">
                                         <option value="Published">Published</option>
                                         <option value="Draft">Draft</option>
                                     </select>
                                 </div>
                             </main>
 
-                            <footer className="p-6 bg-gray-50 rounded-b-2xl">
-                                <button type="submit" className="w-full bg-blue-500 text-white font-bold py-3 px-4 rounded-lg hover:bg-blue-600">
+                            <footer className="p-6 bg-background rounded-b-2xl">
+                                <button type="submit" className="w-full bg-primary text-white font-bold py-3 px-4 rounded-lg hover:opacity-90">
                                     {mode === 'edit' ? 'Simpan Perubahan' : 'Tambah'}
                                 </button>
                             </footer>

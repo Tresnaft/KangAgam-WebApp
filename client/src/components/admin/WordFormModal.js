@@ -13,27 +13,32 @@ const WordFormModal = ({ isOpen, onClose, onSubmit, mode, initialData }) => {
 
     useEffect(() => {
         if (isOpen) {
+            // --- PERBAIKAN UTAMA: Selalu gunakan urutan 'id', 'su', 'en' ---
+            const languageOrder = ['id', 'su', 'en'];
+
             if (mode === 'edit' && initialData) {
-                // Pre-fill form for editing
-                const initialVocabs = ['id', 'su', 'en'].map(langCode => {
+                // Untuk mode edit, petakan data yang ada ke urutan yang benar
+                const initialVocabs = languageOrder.map(langCode => {
                     const existing = initialData.entryVocabularies.find(v => v.language.languageCode === langCode);
                     return {
-                        _id: existing?._id, // Keep track of existing vocab ID
+                        _id: existing?._id,
                         languageCode: langCode,
                         vocab: existing?.vocab || '',
-                        audioFile: null // Reset file input
+                        audioFile: null
                     };
                 });
                 setVocabularies(initialVocabs);
-                setEntryImage(null); // Reset file input
-            } else {
-                // Reset form for adding
                 setEntryImage(null);
-                setVocabularies([
-                    { languageCode: 'id', vocab: '', audioFile: null },
-                    { languageCode: 'su', vocab: '', audioFile: null },
-                    { languageCode: 'en', vocab: '', audioFile: null },
-                ]);
+            } else {
+                // Untuk mode tambah, buat state kosong dengan urutan yang benar
+                setEntryImage(null);
+                setVocabularies(
+                    languageOrder.map(langCode => ({
+                        languageCode: langCode,
+                        vocab: '',
+                        audioFile: null
+                    }))
+                );
             }
         }
     }, [isOpen, mode, initialData]);
@@ -68,7 +73,7 @@ const WordFormModal = ({ isOpen, onClose, onSubmit, mode, initialData }) => {
         const entryData = {
             entryVocabularies: filledVocabs.map(v => {
                 const vocabPayload = {
-                    _id: v._id, // Send existing ID if available
+                    _id: v._id,
                     languageCode: v.languageCode,
                     vocab: v.vocab
                 };
@@ -98,45 +103,45 @@ const WordFormModal = ({ isOpen, onClose, onSubmit, mode, initialData }) => {
                 >
                     <motion.div
                         initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }}
-                        className="bg-white rounded-2xl shadow-xl w-full max-w-lg"
+                        className="bg-background-secondary rounded-2xl shadow-xl w-full max-w-lg"
                         onClick={(e) => e.stopPropagation()}
                     >
                         <form onSubmit={handleSubmit}>
-                            <header className="flex items-center justify-between p-6 border-b">
-                                <h2 className="text-xl font-bold text-gray-800">
+                            <header className="flex items-center justify-between p-6 border-b border-background">
+                                <h2 className="text-xl font-bold text-text">
                                     {mode === 'edit' ? `Edit Kosakata` : 'Tambah Kosakata'}
                                 </h2>
-                                <button type="button" onClick={onClose} className="p-1 rounded-full hover:bg-gray-100"><CloseIcon /></button>
+                                <button type="button" onClick={onClose} className="p-1 rounded-full hover:bg-background"><CloseIcon /></button>
                             </header>
 
                             <main className="p-6 space-y-6 max-h-[60vh] overflow-y-auto">
                                 <div>
-                                    <label htmlFor="entryImage" className="block text-sm font-medium text-gray-600 mb-1">Gambar Utama {mode === 'edit' && '(Opsional)'}</label>
+                                    <label htmlFor="entryImage" className="block text-sm font-medium text-text-secondary mb-1">Gambar Utama {mode === 'edit' && '(Opsional)'}</label>
                                     <input type="file" id="entryImage" name="entryImage" accept="image/*" onChange={(e) => setEntryImage(e.target.files[0])}
-                                        className="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-violet-50 file:text-violet-700 hover:file:bg-violet-100" required={mode === 'add'} />
+                                        className="w-full text-sm text-text-secondary file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-primary/10 file:text-primary hover:file:bg-primary/20" required={mode === 'add'} />
                                 </div>
-                                <hr/>
+                                <hr className="border-background"/>
                                 {vocabularies.map((voc, index) => (
-                                    <div key={index} className="space-y-2 p-4 border rounded-lg">
-                                        <h3 className="font-semibold text-gray-700">{languageNames[voc.languageCode]}</h3>
+                                    <div key={index} className="space-y-2 p-4 border border-background rounded-lg">
+                                        <h3 className="font-semibold text-text">{languageNames[voc.languageCode]}</h3>
                                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                             <div>
-                                                <label htmlFor={`vocab-${voc.languageCode}`} className="block text-sm font-medium text-gray-600 mb-1">Teks Kosakata</label>
+                                                <label htmlFor={`vocab-${voc.languageCode}`} className="block text-sm font-medium text-text-secondary mb-1">Teks Kosakata</label>
                                                 <input type="text" id={`vocab-${voc.languageCode}`} value={voc.vocab} onChange={(e) => handleVocabChange(index, 'vocab', e.target.value)}
-                                                    className="w-full px-4 py-2.5 border border-gray-300 rounded-lg" />
+                                                    className="w-full px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg bg-background text-text" />
                                             </div>
                                             <div>
-                                                <label htmlFor={`audio-${voc.languageCode}`} className="block text-sm font-medium text-gray-600 mb-1">File Audio {mode === 'edit' && '(Opsional)'}</label>
+                                                <label htmlFor={`audio-${voc.languageCode}`} className="block text-sm font-medium text-text-secondary mb-1">File Audio {mode === 'edit' && '(Opsional)'}</label>
                                                 <input type="file" id={`audio-${voc.languageCode}`} accept="audio/*" onChange={(e) => handleVocabChange(index, 'audioFile', e.target.files[0])}
-                                                    className="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"/>
+                                                    className="w-full text-sm text-text-secondary file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-500/10 file:text-blue-600 hover:file:bg-blue-500/20"/>
                                             </div>
                                         </div>
                                     </div>
                                 ))}
                             </main>
 
-                            <footer className="p-6 bg-gray-50 rounded-b-2xl">
-                                <button type="submit" className="w-full bg-blue-500 text-white font-bold py-3 px-4 rounded-lg hover:bg-blue-600">
+                            <footer className="p-6 bg-background rounded-b-2xl">
+                                <button type="submit" className="w-full bg-primary text-white font-bold py-3 px-4 rounded-lg hover:opacity-90">
                                     {mode === 'edit' ? 'Simpan Perubahan' : 'Tambah Kosakata'}
                                 </button>
                             </footer>

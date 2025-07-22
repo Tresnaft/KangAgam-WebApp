@@ -7,20 +7,33 @@ import path from 'path';
 
 export const createTopic = async (req, res) => {
     try {
-        const { topicName } = req.body;
+        const { topicNames, status } = req.body;
         const topicImagePath = req.file ? req.file.path : null;
-        if (!topicName || !topicImagePath) {
+
+        if (!topicNames || !topicImagePath) {
             return res.status(400).json({ message: 'Nama topik dan file gambar harus diisi' });
         }
+
+        const parsedTopicNames = JSON.parse(topicNames);
+
+        if (!Array.isArray(parsedTopicNames) || parsedTopicNames.length === 0 || !parsedTopicNames.find(n => n.lang === 'id')?.value) {
+            return res.status(400).json({ message: 'Nama topik dalam Bahasa Indonesia tidak boleh kosong.' });
+        }
+
         const finalImagePath = topicImagePath.replace(/\\/g, '/').replace('public', '');
-        const topicExists = await Topic.findOne({ "topicName.value": topicName });
+        
+        const indonesianName = parsedTopicNames.find(n => n.lang === 'id').value;
+        const topicExists = await Topic.findOne({ "topicName.value": indonesianName, "topicName.lang": "id" });
         if (topicExists) {
             return res.status(400).json({ message: 'Topik dengan nama ini sudah ada' });
         }
+
         const newTopic = await Topic.create({
-            topicName: [{ lang: 'id', value: topicName }],
-            topicImagePath: finalImagePath
+            topicName: parsedTopicNames,
+            topicImagePath: finalImagePath,
+            status: status || 'Published'
         });
+
         res.status(201).json({
             message: 'Topik berhasil dibuat',
             topic: newTopic
@@ -36,7 +49,7 @@ export const createTopic = async (req, res) => {
 
 export const updateTopic = async (req, res) => {
     const { id } = req.params;
-    const { topicName } = req.body;
+    const { topicNames, status } = req.body;
     const newImageFile = req.file;
 
     try {
@@ -47,12 +60,13 @@ export const updateTopic = async (req, res) => {
 
         const oldImagePath = topic.topicImagePath;
 
-        const nameIndex = topic.topicName.findIndex(t => t.lang === 'id');
-        if (nameIndex > -1) {
-            topic.topicName[nameIndex].value = topicName;
-        } else {
-            topic.topicName.push({ lang: 'id', value: topicName });
+        const parsedTopicNames = JSON.parse(topicNames);
+        if (!Array.isArray(parsedTopicNames) || parsedTopicNames.length === 0 || !parsedTopicNames.find(n => n.lang === 'id')?.value) {
+            return res.status(400).json({ message: 'Nama topik dalam Bahasa Indonesia tidak boleh kosong.' });
         }
+        
+        topic.topicName = parsedTopicNames;
+        topic.status = status || topic.status;
 
         if (newImageFile) {
             topic.topicImagePath = newImageFile.path.replace(/\\/g, '/').replace('public', '');
@@ -82,7 +96,6 @@ export const updateTopic = async (req, res) => {
     }
 };
 
-// FIX: Logika hapus tanpa menggunakan transaksi database
 export const deleteTopic = async (req, res) => {
     const { id } = req.params;
     try {
@@ -106,8 +119,7 @@ export const deleteTopic = async (req, res) => {
                 const vocabs = await Vocabulary.find({ _id: { $in: entry.entryVocabularies } });
                 vocabs.forEach(v => {
                     if (v.audioUrl) {
-                        // Pastikan path audio juga di-resolve dengan benar
-                        filesToDelete.push(path.resolve(v.audioUrl));
+                        filesToDelete.push(path.resolve(`public${v.audioUrl}`));
                     }
                 });
                 await Vocabulary.deleteMany({ _id: { $in: entry.entryVocabularies } });
@@ -120,7 +132,6 @@ export const deleteTopic = async (req, res) => {
 
         await Topic.findByIdAndDelete(id);
 
-        // Hapus semua file yang terkumpul
         filesToDelete.forEach(filePath => {
             if (fs.existsSync(filePath)) {
                 fs.unlink(filePath, err => {
@@ -147,8 +158,12 @@ export const getAllTopics = async (req, res) => {
             return {
                 _id: topic._id,
                 topicImagePath: topic.topicImagePath,
-                topicName: nameObj ? nameObj.value : "Tanpa Nama",
-                topicEntries: topic.topicEntries
+                topicName: nameObj ? nameObj.value : "Tanpa Nama", // Untuk tampilan di tabel
+                topicEntries: topic.topicEntries,
+                status: topic.status,
+                // --- PERBAIKAN DI SINI ---
+                // Sertakan kembali data array nama topik yang asli untuk keperluan edit
+                allTopicNames: topic.topicName,
             };
         });
         res.status(200).json({

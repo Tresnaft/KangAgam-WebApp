@@ -8,13 +8,13 @@ const logo = '/assets/images/logo-kang-agam.png';
 const AdminLoginPage = () => {
     const navigate = useNavigate();
     const { user, login } = useAuth();
-    // FIX: Gunakan nama field yang benar: adminEmail dan adminPassword
     const [formData, setFormData] = useState({ adminEmail: '', adminPassword: '' });
     const [error, setError] = useState('');
     const [isSubmitting, setIsSubmitting] = useState(false);
 
     useEffect(() => {
-        if (user?.role === 'admin') {
+        // Logika ini sudah benar, akan bekerja setelah login berhasil
+        if (user?.role?.toLowerCase() === 'admin' || user?.role?.toLowerCase() === 'superadmin') {
             navigate('/admin/dashboard', { replace: true });
         }
     }, [user, navigate]);
@@ -30,10 +30,15 @@ const AdminLoginPage = () => {
 
         try {
             const response = await adminService.login(formData);
-            if (response?.role === 'admin') {
+            
+            // --- PERBAIKAN DI SINI ---
+            // Memeriksa apakah peran adalah 'admin' ATAU 'superadmin'
+            const userRole = response?.role?.toLowerCase();
+            if (userRole === 'admin' || userRole === 'superadmin') {
                 login(response);
+                // Navigasi akan ditangani oleh useEffect di atas
             } else {
-                setError('Akses ditolak. Anda bukan admin.');
+                setError('Akses ditolak. Anda tidak memiliki peran sebagai admin.');
             }
         } catch (err) {
             setError(err.response?.data?.message || 'Gagal login. Periksa kredensial Anda.');
@@ -49,7 +54,6 @@ const AdminLoginPage = () => {
                 {error && <p className="text-red-500 text-sm mb-4">{error}</p>}
                 <form onSubmit={handleSubmit} className="space-y-5">
                     <div>
-                        {/* FIX: Sesuaikan nama dan label input */}
                         <label htmlFor="adminEmail" className="block text-sm font-medium text-gray-600 mb-1">Email</label>
                         <input type="email" name="adminEmail" value={formData.adminEmail} onChange={handleChange} className="w-full px-4 py-2.5 border border-gray-300 rounded-lg" required />
                     </div>

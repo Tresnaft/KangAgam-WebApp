@@ -2,7 +2,6 @@ import React from 'react';
 import { BrowserRouter, Routes, Route, useLocation } from 'react-router-dom';
 import { AnimatePresence } from 'framer-motion';
 
-// Import semua komponen seperti biasa
 import { ProtectedRoutes, AdminRoute } from './ProtectedRoutes'; 
 import UserLayout from '../components/layout/UserLayout';
 import AdminLayout from '../components/layout/AdminLayout';
@@ -18,14 +17,12 @@ import ManageAdminsPage from '../pages/admin/ManageAdminsPage';
 import StatisticsPage from '../pages/admin/StatisticsPage';
 import ManageLearnersPage from '../pages/admin/ManageLearnersPage';
 
-
 const NotFoundPage = () => (
     <div className="flex items-center justify-center min-h-screen">
         <h1 className="text-3xl font-bold">404 - Halaman Tidak Ditemukan</h1>
     </div>
 );
 
-// Komponen ini akan berisi logika AnimatePresence
 const AnimatedRoutes = () => {
     const location = useLocation();
     return (
@@ -35,7 +32,9 @@ const AnimatedRoutes = () => {
                 <Route path="/" element={<OnboardingPage />} />
                 <Route path="/admin/login" element={<AdminLoginPage />} />
 
-                {/* Rute User Terproteksi */}
+                {/* --- PERBAIKAN STRUKTUR DIMULAI DI SINI --- */}
+
+                {/* Rute User Terproteksi (Hanya untuk role 'user') */}
                 <Route element={<ProtectedRoutes />}>
                     <Route element={<UserLayout />}>
                         <Route path="/home" element={<HomePage />} />
@@ -44,7 +43,8 @@ const AnimatedRoutes = () => {
                     </Route>
                 </Route>
 
-                {/* Rute Admin */}
+                {/* Rute Admin (Hanya untuk role 'admin' dan 'superadmin') */}
+                {/* Ini sekarang berada di level yang sama dengan ProtectedRoutes, tidak lagi di dalamnya */}
                 <Route path="/admin" element={<AdminRoute />}>
                     <Route element={<AdminLayout />}>
                         <Route index element={<AdminDashboard />} />
@@ -57,13 +57,14 @@ const AnimatedRoutes = () => {
                     </Route>
                 </Route>
                 
+                {/* --- PERBAIKAN STRUKTUR SELESAI --- */}
+                
                 <Route path="*" element={<NotFoundPage />} />
             </Routes>
         </AnimatePresence>
     );
 }
 
-// Wrapper utama yang akan digunakan di App.js
 const AppRoutes = () => {
   return (
     <BrowserRouter>

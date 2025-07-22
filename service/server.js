@@ -17,6 +17,7 @@ import adminRouter from './src/routes/AdminRoutes.js';
 import visitorLogRouter from './src/routes/VisitorLogRoutes.js';
 import dashboardRouter from './src/routes/DashboardRoutes.js';
 import locationRouter from './src/routes/LocationRoutes.js';
+import settingRouter from './src/routes/SettingRoutes.js';
 
 // Konfigurasi untuk mendapatkan __dirname di ES Modules
 const __filename = fileURLToPath(import.meta.url);
@@ -62,6 +63,7 @@ app.use('/api/admins', adminRouter);
 app.use('/api/visitor-logs', visitorLogRouter);
 app.use('/api/dashboard', dashboardRouter);
 app.use('/api/locations', locationRouter);
+app.use('/api/settings', settingRouter);
 
 
 const options = {

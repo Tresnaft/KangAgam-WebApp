@@ -3,6 +3,7 @@ import jwt from 'jsonwebtoken'; // Diperlukan untuk login (install: npm i jsonwe
 import crypto from 'crypto';
 import sendEmail from '../utils/SendEmail.js';
 import mongoose from 'mongoose';
+import Setting from '../models/SettingModel.js';
 
 // Fungsi helper untuk generate token
 const generateToken = (id) => {
@@ -31,7 +32,7 @@ export const loginAdmin = async (req, res) => {
                 adminName: admin.adminName,
                 adminEmail: admin.adminEmail,
                 token: generateToken(admin._id),
-                role: 'admin' // FIX: Tambahkan properti 'role' di sini
+                role: admin.role
             });
         } else {
             res.status(401).json({ message: "Email atau password salah." });
@@ -41,23 +42,33 @@ export const loginAdmin = async (req, res) => {
     }
 };
 
-
 /**
  * @desc    Membuat (Create) admin baru (Registrasi)
  * @route   POST /api/admins
  */
 export const createAdmin = async (req, res) => {
     try {
-        console.log(req.headers['content-type']);
-        console.log("Creating admin with body:", req.body);
-        const { adminName, adminEmail, adminPassword } = req.body;
+        // Ambil pengaturan batas admin, atau buat jika belum ada
+        let settings = await Setting.findOne({ key: 'app_settings' });
+        if (!settings) {
+            settings = await Setting.create({ key: 'app_settings' }); // Default maxAdmins adalah 5
+        }
+        const maxAdmins = settings.value.maxAdmins;
+
+        const currentAdminCount = await Admin.countDocuments();
+
+        if (currentAdminCount >= maxAdmins) {
+            return res.status(403).json({ message: `Batas maksimum admin (${maxAdmins}) telah tercapai.` });
+        }
+
+        const { adminName, adminEmail, adminPassword, role } = req.body;
 
         const adminExists = await Admin.findOne({ adminEmail });
         if (adminExists) {
             return res.status(400).json({ message: "Admin dengan email ini sudah terdaftar." });
         }
 
-        const admin = await Admin.create({ adminName, adminEmail, adminPassword });
+        const admin = await Admin.create({ adminName, adminEmail, adminPassword, role });
 
         if (admin) {
             res.status(201).json({
@@ -65,6 +76,7 @@ export const createAdmin = async (req, res) => {
                 _id: admin._id,
                 adminName: admin.adminName,
                 adminEmail: admin.adminEmail,
+                role: admin.role,
                 token: generateToken(admin._id),
             });
         } else {

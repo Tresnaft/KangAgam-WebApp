@@ -37,8 +37,8 @@ const Navbar = ({ onMenuToggle, isMenuOpen }) => {
                         value={i18n.language}
                     >
                         <option value="id">Indonesia</option>
-                        <option value="en">Inggris</option>
                         <option value="su">Sunda</option>
+                        <option value="en">Inggris</option>
                     </select>
                 </div>
                 <button

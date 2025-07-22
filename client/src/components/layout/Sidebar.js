@@ -1,6 +1,7 @@
 import React from 'react';
 import { Link, NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
+import ThemeSwitcher from '../admin/ThemeSwitcher';
 
 const logo = '/assets/images/logo-kang-agam.png';
 
@@ -20,35 +21,38 @@ const Sidebar = () => {
         navigate('/admin/login');
     };
 
-    const navLinkClasses = "p-3 rounded-lg text-gray-500 hover:bg-gray-100";
-    const activeLinkClasses = "p-3 rounded-lg bg-blue-100 text-blue-600";
+    // Menggunakan class warna semantik dari tailwind.config.js
+    const navLinkClasses = "p-3 rounded-lg text-text-secondary hover:bg-background";
+    const activeLinkClasses = "p-3 rounded-lg bg-primary/10 text-primary";
 
     return (
-        // Sembunyikan sidebar di mobile, tampilkan di desktop (lg:flex)
-        <div className="hidden lg:flex w-24 bg-white h-screen flex-col items-center py-6 shadow-lg fixed">
+        <div className="hidden lg:flex w-24 bg-background-secondary h-screen flex-col items-center justify-between py-6 shadow-lg fixed">
             <div>
                 <Link to="/admin/dashboard">
                     <img src={logo} alt="Logo" className="h-12 w-auto" />
                 </Link>
                 <nav className="flex flex-col items-center mt-12 space-y-6">
-                    <NavLink to="/admin/dashboard" className={({ isActive }) => isActive ? activeLinkClasses : navLinkClasses}>
+                    <NavLink to="/admin/dashboard" className={({ isActive }) => isActive ? activeLinkClasses : navLinkClasses} title="Dashboard">
                         <HomeIcon />
                     </NavLink>
-                    <NavLink to="/admin/manage-topics" className={({ isActive }) => isActive ? activeLinkClasses : navLinkClasses}>
+                    <NavLink to="/admin/manage-topics" className={({ isActive }) => isActive ? activeLinkClasses : navLinkClasses} title="Kelola Topik">
                         <BookIcon />
                     </NavLink>
-                    {/* PERBAIKAN DI SINI: Arahkan ke rute yang benar */}
-                    <NavLink to="/admin/manage-admins" className={({ isActive }) => isActive ? activeLinkClasses : navLinkClasses}>
+                    <NavLink to="/admin/manage-admins" className={({ isActive }) => isActive ? activeLinkClasses : navLinkClasses} title="Kelola Admin">
                         <UsersIcon />
                     </NavLink>
-                    <NavLink to="/admin/statistics" className={({ isActive }) => isActive ? activeLinkClasses : navLinkClasses}>
+                    <NavLink to="/admin/statistics" className={({ isActive }) => isActive ? activeLinkClasses : navLinkClasses} title="Statistik">
                         <ChartIcon />
                     </NavLink>
                 </nav>
             </div>
-            <button onClick={handleLogout} className="mt-auto p-3 rounded-lg text-red-500 hover:bg-red-100" title="Logout">
-                <LogoutIcon />
-            </button>
+            
+            <div className="flex flex-col items-center gap-4">
+                <ThemeSwitcher />
+                <button onClick={handleLogout} className="p-3 rounded-lg text-red-500 hover:bg-red-500/10" title="Logout">
+                    <LogoutIcon />
+                </button>
+            </div>
         </div>
     );
 };

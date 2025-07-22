@@ -2,24 +2,47 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import axios from 'axios';
+import Select from 'react-select';
 
 const logo = '/assets/images/logo-kang-agam.png';
 
 const OnboardingPage = () => {
     const navigate = useNavigate();
     const { user, login } = useAuth();
+    
     const [formData, setFormData] = useState({
         namaLengkap: '',
         nomorTelepon: '',
-        asalInstansi: ''
     });
+    // Mengganti nama state agar lebih jelas
+    const [selectedCity, setSelectedCity] = useState(null); 
+    const [cityOptions, setCityOptions] = useState([]);
+    const [isLoadingCities, setIsLoadingCities] = useState(true);
+
     const [error, setError] = useState('');
     const [isSubmitting, setIsSubmitting] = useState(false);
 
     useEffect(() => {
-        console.log('Current user state:', user);
+        const fetchCities = async () => {
+            try {
+                const response = await axios.get('http://localhost:5000/api/locations/cities'); 
+                const cityData = response.data.map(city => ({
+                    value: city.name,
+                    label: city.name,
+                }));
+                setCityOptions(cityData);
+            } catch (err) {
+                console.error("Gagal memuat data domisili:", err);
+                setCityOptions([{ value: 'Lainnya', label: 'Lainnya' }]);
+            } finally {
+                setIsLoadingCities(false);
+            }
+        };
+        fetchCities();
+    }, []);
+
+    useEffect(() => {
         if (user && user.role === 'user') {
-            console.log('Navigating to /home due to user role:', user.role);
             navigate('/home', { replace: true });
         }
     }, [user, navigate]);
@@ -28,40 +51,38 @@ const OnboardingPage = () => {
         setFormData({ ...formData, [e.target.name]: e.target.value });
     };
 
+    const handleCityChange = (selectedOption) => {
+        setSelectedCity(selectedOption);
+    };
+
     const handleSubmit = async (e) => {
         e.preventDefault();
         setError('');
         setIsSubmitting(true);
 
-        if (!formData.namaLengkap.trim() || !formData.asalInstansi.trim()) {
-            setError('Harap isi nama lengkap dan asal instansi.');
+        if (!formData.namaLengkap.trim() || !selectedCity) {
+            setError('Harap isi nama lengkap dan pilih asal domisili.');
             setIsSubmitting(false);
             return;
         }
 
         try {
-            console.log('Mengirim data ke server:', formData);
+            // --- PERUBAHAN DI SINI ---
+            // Mengirim data dengan field 'learnerCity'
             const learnerData = {
                 learnerName: formData.namaLengkap,
                 learnerPhone: formData.nomorTelepon,
-                learnerInstitution: formData.asalInstansi
+                learnerCity: selectedCity.value, 
             };
             const response = await axios.post('http://localhost:5000/api/learners', learnerData);
-            console.log('Respons dari server:', response.data);
-            const userData = { ...learnerData, role: 'user', _id: response.data.data._id };
+            
+            const userData = { ...response.data.data, role: 'user' };
             login(userData);
-            // Tunggu state diperbarui
-            setTimeout(() => {
-                if (user) {
-                    navigate('/home', { replace: true });
-                } else {
-                    console.warn('User state not updated, forcing navigation');
-                    navigate('/home');
-                }
-            }, 100);
+            navigate('/home', { replace: true });
+
         } catch (err) {
             console.error('Error details:', err.response ? err.response.data : err.message);
-            setError(err.response?.data?.message || 'Gagal menyimpan data. Periksa koneksi atau coba lagi.');
+            setError(err.response?.data?.message || 'Gagal menyimpan data. Coba lagi.');
         } finally {
             setIsSubmitting(false);
         }
@@ -90,17 +111,36 @@ const OnboardingPage = () => {
                     <form onSubmit={handleSubmit} className="space-y-5">
                         <div>
                             <label htmlFor="namaLengkap" className="block text-sm font-medium text-gray-600 mb-1">Nama Lengkap</label>
-                            <input type="text" name="namaLengkap" value={formData.namaLengkap} onChange={handleChange} className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-300 focus:border-blue-500 transition" required />
+                            <input type="text" name="namaLengkap" value={formData.namaLengkap} onChange={handleChange} className="w-full px-4 py-2.5 border border-gray-300 rounded-lg" required />
                         </div>
                         <div>
-                            <label htmlFor="nomorTelepon" className="block text-sm font-medium text-gray-600 mb-1">Nomor Telepon</label>
-                            <input type="tel" name="nomorTelepon" value={formData.nomorTelepon} onChange={handleChange} className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-300 focus:border-blue-500 transition" />
+                            <label htmlFor="nomorTelepon" className="block text-sm font-medium text-gray-600 mb-1">Nomor Telepon (Opsional)</label>
+                            <input type="tel" name="nomorTelepon" value={formData.nomorTelepon} onChange={handleChange} className="w-full px-4 py-2.5 border border-gray-300 rounded-lg" />
                         </div>
                         <div>
-                            <label htmlFor="asalInstansi" className="block text-sm font-medium text-gray-600 mb-1">Asal Instansi</label>
-                            <input type="text" name="asalInstansi" value={formData.asalInstansi} onChange={handleChange} className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-300 focus:border-blue-500 transition" required />
+                            <label htmlFor="asalDomisili" className="block text-sm font-medium text-gray-600 mb-1">Asal Domisili (Kota/Kabupaten)</label>
+                            <Select
+                                id="asalDomisili"
+                                name="asalDomisili"
+                                value={selectedCity}
+                                onChange={handleCityChange}
+                                options={cityOptions}
+                                isLoading={isLoadingCities}
+                                placeholder="Cari dan pilih kota/kabupaten..."
+                                isClearable
+                                menuPortalTarget={document.body}
+                                styles={{
+                                    menuPortal: base => ({ ...base, zIndex: 9999 }),
+                                    control: (base) => ({
+                                        ...base,
+                                        padding: '0.3rem',
+                                        borderRadius: '0.5rem',
+                                        borderColor: '#D1D5DB',
+                                    }),
+                                }}
+                            />
                         </div>
-                        <button type="submit" disabled={isSubmitting} className="w-full bg-[#8DA2FB] text-white font-bold py-3 px-4 rounded-lg hover:bg-[#788DE5] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#8DA2FB] transition-colors">
+                        <button type="submit" disabled={isSubmitting} className="w-full bg-[#8DA2FB] text-white font-bold py-3 px-4 rounded-lg hover:bg-[#788DE5]">
                             {isSubmitting ? 'Memproses...' : 'Masuk'}
                         </button>
                     </form>

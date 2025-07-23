@@ -15,20 +15,9 @@ const TopicFormModal = ({ isOpen, onClose, onSubmit, mode, initialData }) => {
 
     useEffect(() => {
         if (isOpen) {
-            // --- DEBUGGING DIMULAI DI SINI ---
-            // Kita akan log `initialData` untuk melihat strukturnya saat mode 'edit'
-            if (mode === 'edit') {
-                console.log("Data yang diterima oleh Modal:", initialData);
-            }
-            // --- DEBUGGING SELESAI ---
-
             if (mode === 'edit' && initialData) {
                 const names = { id: '', su: '', en: '' };
-                
-                // --- PERBAIKAN LOGIKA ---
-                // Kita akan menggunakan 'allTopicNames' yang dikirim dari API
                 const namesArray = initialData.allTopicNames || initialData.topicName;
-
                 if (Array.isArray(namesArray)) {
                     namesArray.forEach(item => {
                         if (names.hasOwnProperty(item.lang)) {
@@ -36,8 +25,6 @@ const TopicFormModal = ({ isOpen, onClose, onSubmit, mode, initialData }) => {
                         }
                     });
                 }
-                // -------------------------
-
                 setTopicNames(names);
                 setStatus(initialData.status || 'Published');
             } else {
@@ -84,6 +71,7 @@ const TopicFormModal = ({ isOpen, onClose, onSubmit, mode, initialData }) => {
             {isOpen && (
                 <motion.div
                     initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                    // --- PERBAIKAN 3: Naikkan z-index agar muncul di atas modal detail ---
                     className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4"
                     onClick={onClose}
                 >

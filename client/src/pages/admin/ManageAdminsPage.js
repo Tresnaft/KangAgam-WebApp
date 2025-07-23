@@ -8,11 +8,12 @@ import AdminFormModal from '../../components/admin/AdminFormModal';
 import ConfirmDeleteModal from '../../components/admin/ConfirmDeleteModal';
 import LoadingIndicator from '../../components/ui/LoadingIndicator';
 import AdminLimitSettings from '../../components/admin/AdminLimitSettings';
+import ManageAdminDetailModal from '../../components/admin/ManageAdminDetailModal';
 
 const ITEMS_PER_PAGE = 5;
 
 // Komponen Ikon
-const SearchIcon = () => <svg xmlns="http://www.w.3.org/2000/svg" className="h-5 w-5 text-text-secondary" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>;
+const SearchIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-text-secondary" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>;
 const PlusIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" /></svg>;
 
 const ManageAdminsPage = () => {
@@ -23,6 +24,7 @@ const ManageAdminsPage = () => {
     const [error, setError] = useState(null);
     const [searchTerm, setSearchTerm] = useState('');
     const [modalState, setModalState] = useState({ type: null, mode: null, data: null });
+    const [detailModalAdmin, setDetailModalAdmin] = useState(null);
     const [currentPage, setCurrentPage] = useState(1);
     const [settings, setSettings] = useState({ maxAdmins: 5 });
 
@@ -30,7 +32,6 @@ const ManageAdminsPage = () => {
         if (!user?.token) return;
         setIsLoading(true);
         try {
-            // --- PERBAIKAN DI SINI ---
             const minDelay = new Promise(resolve => setTimeout(resolve, 1000));
             const adminFetch = adminService.getAllAdmins(user.token);
             const settingsFetch = settingService.getSettings(user.token);
@@ -68,7 +69,18 @@ const ManageAdminsPage = () => {
     const totalPages = Math.ceil(filteredAdmins.length / ITEMS_PER_PAGE);
 
     const handleOpenModal = (type, mode, data = null) => setModalState({ type, mode, data });
-    const handleCloseModal = () => setModalState({ type: null, mode: null, data: null });
+    
+    // --- PERBAIKAN 1: Buat fungsi terpisah untuk menutup modal aksi (form/delete) ---
+    const handleCloseActionModal = () => {
+        setModalState({ type: null, mode: null, data: null });
+    };
+
+    // Fungsi ini akan menutup SEMUA modal, digunakan setelah aksi berhasil
+    const handleCloseAllModals = () => {
+        setModalState({ type: null, mode: null, data: null });
+        setDetailModalAdmin(null);
+    };
+
     const handlePageChange = (pageNumber) => setCurrentPage(pageNumber);
 
     const handleFormSubmit = async (formData) => {
@@ -82,7 +94,7 @@ const ManageAdminsPage = () => {
                 alert('Admin berhasil diperbarui!');
             }
             fetchData();
-            handleCloseModal();
+            handleCloseAllModals(); // Setelah submit, tutup semua modal
         } catch (err) {
             console.error('Form submit error:', err);
             const errorMessage = err.message || 'Terjadi kesalahan.';
@@ -93,13 +105,14 @@ const ManageAdminsPage = () => {
     };
 
     const handleDeleteConfirm = async () => {
-        if (!modalState.data) return;
+        const adminToDelete = modalState.data;
+        if (!adminToDelete) return;
         setIsSubmitting(true);
         try {
-            await adminService.deleteAdmin(modalState.data._id, user.token);
+            await adminService.deleteAdmin(adminToDelete._id, user.token);
             alert('Admin berhasil dihapus!');
             fetchData();
-            handleCloseModal();
+            handleCloseAllModals(); // Setelah delete, tutup semua modal
         } catch (err) {
             console.error('Delete admin error:', err);
             const errorMessage = err.message || 'Gagal menghapus admin.';
@@ -146,52 +159,43 @@ const ManageAdminsPage = () => {
             </div>
 
             <div className="bg-background-secondary rounded-xl shadow-md overflow-x-auto">
-                <table className="w-full text-left min-w-[600px]">
+                <table className="w-full text-left">
                     <thead className="bg-slate-50 dark:bg-gray-700/50">
                         <tr>
-                            <th className="p-4 font-bold text-text-secondary w-[5%]">#</th>
-                            <th className="p-4 font-bold text-text-secondary w-[25%]">Nama</th>
-                            <th className="p-4 font-bold text-text-secondary w-[30%]">E-Mail</th>
-                            <th className="p-4 font-bold text-text-secondary w-[15%]">Role</th>
-                            <th className="p-4 font-bold text-text-secondary text-center w-[25%]">Aksi</th>
+                            <th className="hidden sm:table-cell p-3 px-6 font-bold text-text-secondary w-[5%]">#</th>
+                            <th className="p-3 px-6 font-bold text-text-secondary">Nama</th>
+                            <th className="hidden sm:table-cell p-3 px-6 font-bold text-text-secondary w-[30%]">E-Mail</th>
+                            <th className="hidden sm:table-cell p-3 px-6 font-bold text-text-secondary w-[15%]">Role</th>
+                            <th className="p-3 px-6 font-bold text-text-secondary text-right">Aksi</th>
                         </tr>
                     </thead>
                     <tbody>
                         {isLoading ? (
-                            <tr>
-                                <td colSpan="5" className="text-center p-8"><LoadingIndicator /></td>
-                            </tr>
+                            <tr><td colSpan="5" className="text-center p-8"><LoadingIndicator /></td></tr>
                         ) : error ? (
-                            <tr>
-                                <td colSpan="5" className="text-center p-8 text-red-500">{error}</td>
-                            </tr>
+                            <tr><td colSpan="5" className="text-center p-8 text-red-500">{error}</td></tr>
                         ) : currentItems.length > 0 ? (
                             currentItems.map((admin, index) => (
                                 <tr key={admin._id} className="border-b border-background hover:bg-background">
-                                    <td className="p-4 text-text-secondary">{indexOfFirstItem + index + 1}</td>
-                                    <td className="p-4 text-text font-semibold truncate">{admin.adminName}</td>
-                                    <td className="p-4 text-text-secondary truncate">{admin.adminEmail}</td>
-                                    <td className="p-4 text-text-secondary capitalize">{admin.role}</td>
-                                    <td className="p-4 flex justify-center items-center gap-2">
-                                        <button
-                                            onClick={() => handleOpenModal('form', 'edit', admin)}
-                                            className="bg-yellow-500/10 text-yellow-600 text-xs font-bold px-3 py-1.5 rounded-md hover:bg-yellow-500/20"
-                                        >
-                                            Edit
-                                        </button>
-                                        <button
-                                            onClick={() => handleOpenModal('delete', 'delete', admin)}
-                                            className="bg-red-500/10 text-red-500 text-xs font-bold px-3 py-1.5 rounded-md hover:bg-red-500/20"
-                                        >
-                                            Hapus
-                                        </button>
+                                    <td className="hidden sm:table-cell p-3 px-6 text-text-secondary">{indexOfFirstItem + index + 1}</td>
+                                    <td className="p-3 px-6 text-text font-semibold truncate">{admin.adminName}</td>
+                                    <td className="hidden sm:table-cell p-3 px-6 text-text-secondary truncate">{admin.adminEmail}</td>
+                                    <td className="hidden sm:table-cell p-3 px-6 text-text-secondary capitalize">{admin.role}</td>
+                                    <td className="p-3 px-6 text-right">
+                                        <div className="hidden sm:flex justify-end items-center gap-2">
+                                            <button onClick={() => handleOpenModal('form', 'edit', admin)} className="bg-yellow-500/10 text-yellow-600 text-xs font-bold px-3 py-1.5 rounded-md hover:bg-yellow-500/20">Edit</button>
+                                            <button onClick={() => handleOpenModal('delete', 'delete', admin)} className="bg-red-500/10 text-red-500 text-xs font-bold px-3 py-1.5 rounded-md hover:bg-red-500/20">Hapus</button>
+                                        </div>
+                                        <div className="sm:hidden">
+                                            <button onClick={() => setDetailModalAdmin(admin)} className="bg-gray-100 text-gray-800 text-xs font-bold px-3 py-1.5 rounded-md hover:bg-gray-200">
+                                                Detail
+                                            </button>
+                                        </div>
                                     </td>
                                 </tr>
                             ))
                         ) : (
-                            <tr>
-                                <td colSpan="5" className="text-center p-8 text-gray-500">Tidak ada admin yang ditemukan.</td>
-                            </tr>
+                            <tr><td colSpan="5" className="text-center p-8 text-gray-500">Tidak ada admin yang ditemukan.</td></tr>
                         )}
                     </tbody>
                 </table>
@@ -205,9 +209,10 @@ const ManageAdminsPage = () => {
                 </div>
             </div>
 
+            {/* --- PERBAIKAN 2: Gunakan fungsi close yang spesifik --- */}
             <AdminFormModal
                 isOpen={modalState.type === 'form'}
-                onClose={handleCloseModal}
+                onClose={handleCloseActionModal}
                 onSubmit={handleFormSubmit}
                 isSubmitting={isSubmitting}
                 mode={modalState.mode}
@@ -215,10 +220,16 @@ const ManageAdminsPage = () => {
             />
             <ConfirmDeleteModal
                 isOpen={modalState.type === 'delete'}
-                onClose={handleCloseModal}
+                onClose={handleCloseActionModal}
                 onConfirm={handleDeleteConfirm}
                 title="Hapus Admin"
                 message={`Apakah Anda yakin ingin menghapus admin "${modalState.data?.adminEmail}"?`}
+            />
+            <ManageAdminDetailModal 
+                admin={detailModalAdmin}
+                onClose={() => setDetailModalAdmin(null)}
+                onEdit={() => handleOpenModal('form', 'edit', detailModalAdmin)}
+                onDelete={() => handleOpenModal('delete', 'delete', detailModalAdmin)}
             />
         </div>
     );

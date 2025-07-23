@@ -5,6 +5,7 @@ import PageHeader from '../../components/ui/PageHeader';
 import Pagination from '../../components/ui/Pagination';
 import ConfirmDeleteModal from '../../components/admin/ConfirmDeleteModal';
 import LoadingIndicator from '../../components/ui/LoadingIndicator';
+import ManageLearnerDetailModal from '../../components/admin/ManageLearnerDetailModal'; // 1. Import modal detail
 
 const ITEMS_PER_PAGE = 10;
 
@@ -19,17 +20,15 @@ const ManageLearnersPage = () => {
     const [searchTerm, setSearchTerm] = useState('');
     const [currentPage, setCurrentPage] = useState(1);
     const [learnerToDelete, setLearnerToDelete] = useState(null);
+    const [detailModalLearner, setDetailModalLearner] = useState(null); // 2. State untuk modal detail
 
     const fetchLearners = useCallback(async () => {
         if (!user?.token) return;
         setIsLoading(true);
         try {
-            // --- PERBAIKAN DI SINI ---
             const minDelay = new Promise(resolve => setTimeout(resolve, 1000));
             const dataFetch = learnerService.getAllLearners(user.token);
-
             const [response] = await Promise.all([dataFetch, minDelay]);
-
             setLearners(response.data || []);
             setError(null);
         } catch (err) {
@@ -55,6 +54,7 @@ const ManageLearnersPage = () => {
             console.error(err);
         } finally {
             setLearnerToDelete(null);
+            setDetailModalLearner(null); // Tutup juga modal detail
         }
     };
 
@@ -74,9 +74,7 @@ const ManageLearnersPage = () => {
 
             <div className="mb-6">
                 <div className="relative">
-                    <span className="absolute inset-y-0 left-0 flex items-center pl-3">
-                        <SearchIcon />
-                    </span>
+                    <span className="absolute inset-y-0 left-0 flex items-center pl-3"><SearchIcon /></span>
                     <input
                         type="text"
                         placeholder="Cari berdasarkan nama atau domisili..."
@@ -88,46 +86,42 @@ const ManageLearnersPage = () => {
             </div>
 
             <div className="bg-background-secondary rounded-xl shadow-md overflow-x-auto">
-                <table className="w-full text-left min-w-[600px]">
+                <table className="w-full text-left">
                     <thead className="bg-slate-50 dark:bg-gray-700/50">
                         <tr>
-                            <th className="p-4 font-bold text-text-secondary w-[5%]">#</th>
-                            <th className="p-4 font-bold text-text-secondary w-[35%]">Nama Lengkap</th>
-                            <th className="p-4 font-bold text-text-secondary w-[25%]">Domisili</th>
-                            <th className="p-4 font-bold text-text-secondary w-[20%]">No. Telepon</th>
-                            <th className="p-4 font-bold text-text-secondary text-center w-[15%]">Aksi</th>
+                            <th className="hidden sm:table-cell p-3 px-6 font-bold text-text-secondary w-[5%]">#</th>
+                            <th className="p-3 px-6 font-bold text-text-secondary">Nama Lengkap</th>
+                            <th className="hidden sm:table-cell p-3 px-6 font-bold text-text-secondary w-[25%]">Domisili</th>
+                            <th className="hidden sm:table-cell p-3 px-6 font-bold text-text-secondary w-[20%]">No. Telepon</th>
+                            <th className="p-3 px-6 font-bold text-text-secondary text-right">Aksi</th>
                         </tr>
                     </thead>
                     <tbody>
                         {isLoading ? (
-                            <tr>
-                                <td colSpan="5" className="text-center p-8"><LoadingIndicator /></td>
-                            </tr>
+                            <tr><td colSpan="5" className="text-center p-8"><LoadingIndicator /></td></tr>
                         ) : error ? (
-                            <tr>
-                                <td colSpan="5" className="text-center p-8 text-red-500">{error}</td>
-                            </tr>
+                            <tr><td colSpan="5" className="text-center p-8 text-red-500">{error}</td></tr>
                         ) : currentItems.length > 0 ? (
                             currentItems.map((learner, index) => (
                                 <tr key={learner._id} className="border-b border-background hover:bg-background">
-                                    <td className="p-4 text-text-secondary">{indexOfFirstItem + index + 1}</td>
-                                    <td className="p-4 text-text font-semibold">{learner.learnerName}</td>
-                                    <td className="p-4 text-text-secondary">{learner.learnerCity}</td>
-                                    <td className="p-4 text-text-secondary">{learner.learnerPhone || '-'}</td>
-                                    <td className="p-4 text-center">
-                                        <button 
-                                            onClick={() => setLearnerToDelete(learner)}
-                                            className="bg-red-500/10 text-red-500 text-xs font-bold px-3 py-1.5 rounded-md hover:bg-red-500/20"
-                                        >
-                                            Hapus
-                                        </button>
+                                    <td className="hidden sm:table-cell p-3 px-6 text-text-secondary">{indexOfFirstItem + index + 1}</td>
+                                    <td className="p-3 px-6 text-text font-semibold">{learner.learnerName}</td>
+                                    <td className="hidden sm:table-cell p-3 px-6 text-text-secondary">{learner.learnerCity}</td>
+                                    <td className="hidden sm:table-cell p-3 px-6 text-text-secondary">{learner.learnerPhone || '-'}</td>
+                                    <td className="p-3 px-6 text-right">
+                                        <div className="hidden sm:flex justify-end">
+                                            <button onClick={() => setLearnerToDelete(learner)} className="bg-red-500/10 text-red-500 text-xs font-bold px-3 py-1.5 rounded-md hover:bg-red-500/20">Hapus</button>
+                                        </div>
+                                        <div className="sm:hidden">
+                                            <button onClick={() => setDetailModalLearner(learner)} className="bg-gray-100 text-gray-800 text-xs font-bold px-3 py-1.5 rounded-md hover:bg-gray-200">
+                                                Detail
+                                            </button>
+                                        </div>
                                     </td>
                                 </tr>
                             ))
                         ) : (
-                            <tr>
-                                <td colSpan="5" className="text-center p-8 text-gray-500">Tidak ada pengguna yang ditemukan.</td>
-                            </tr>
+                            <tr><td colSpan="5" className="text-center p-8 text-gray-500">Tidak ada pengguna yang ditemukan.</td></tr>
                         )}
                     </tbody>
                 </table>
@@ -147,6 +141,12 @@ const ManageLearnersPage = () => {
                 onConfirm={handleDeleteConfirm}
                 title="Hapus Pengguna"
                 message={`Apakah Anda yakin ingin menghapus pengguna "${learnerToDelete?.learnerName}"? Aksi ini tidak dapat dibatalkan.`}
+            />
+            {/* 3. Render modal detail baru */}
+            <ManageLearnerDetailModal
+                learner={detailModalLearner}
+                onClose={() => setDetailModalLearner(null)}
+                onDelete={() => setLearnerToDelete(detailModalLearner)}
             />
         </div>
     );

@@ -11,14 +11,14 @@ import { getTopicById } from '../services/topicService';
 
 // Varian animasi
 const pageVariants = {
-  initial: { opacity: 0, y: 20 },
-  in: { opacity: 1, y: 0 },
-  out: { opacity: 0, y: -20 },
+    initial: { opacity: 0, y: 20 },
+    in: { opacity: 1, y: 0 },
+    out: { opacity: 0, y: -20 },
 };
 const pageTransition = {
-  type: 'tween',
-  ease: 'anticipate',
-  duration: 0.5,
+    type: 'tween',
+    ease: 'anticipate',
+    duration: 0.5,
 };
 
 const KosakataPage = () => {
@@ -35,6 +35,7 @@ const KosakataPage = () => {
         const fetchData = async () => {
             try {
                 setIsLoading(true);
+                // API `getTopicById` sekarang akan mengembalikan data topik beserta `visitCount`
                 const [topicData, entriesData] = await Promise.all([
                     getTopicById(topicId),
                     getEntriesByTopicId(topicId)
@@ -86,7 +87,11 @@ const KosakataPage = () => {
             className="p-4 sm:p-6 lg:p-8 pt-4"
         >
             <div className="max-w-7xl mx-auto">
-                <PageHeader title={getTranslatedTopicName()}>
+                {/* 1. Teruskan `visitCount` dari state `topicInfo` ke PageHeader */}
+                <PageHeader 
+                    title={getTranslatedTopicName()}
+                    visitCount={topicInfo?.visitCount}
+                >
                     <div className='flex items-center gap-4'>
                         <Link to={`/quiz/${topicId}`} className="bg-blue-100 text-blue-800 font-bold px-4 py-2 rounded-lg text-sm hover:bg-blue-200">{t('quizButton')}</Link>
                         <Link to="/home" className="text-sm text-gray-600 hover:text-black">&larr; {t("backButton")}</Link>
@@ -106,10 +111,8 @@ const KosakataPage = () => {
                         <div className="lg:col-span-4">
                             <div className="lg:sticky top-24">
                                 <div className="bg-gray-100 rounded-2xl shadow-inner overflow-hidden">
-                                    {/* FIX: Gunakan aspect-square untuk memastikan wadah selalu persegi */}
                                     <div className="aspect-square">
                                         {activeEntry ? (
-                                            // FIX: Gunakan object-cover agar gambar mengisi wadah
                                             <img src={`http://localhost:5000${activeEntry.entryImagePath.replace(/\\/g, '/')}`} alt="Gambar kosakata" className="w-full h-full object-cover" />
                                         ) : (
                                             <div className="flex items-center justify-center text-gray-400 h-full">Pilih kosakata</div>

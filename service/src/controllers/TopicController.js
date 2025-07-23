@@ -1,6 +1,7 @@
 import Topic from '../models/TopicModel.js';
 import Entry from '../models/EntryModel.js';
 import Vocabulary from '../models/VocabularyModel.js';
+import VisitorLog from '../models/VisitorLogModel.js';
 import mongoose from 'mongoose';
 import fs from 'fs';
 import path from 'path';
@@ -151,6 +152,13 @@ export const deleteTopic = async (req, res) => {
 export const getAllTopics = async (req, res) => {
     try {
         const requestedLangCode = req.query.language || 'id';
+
+        const visitCounts = await VisitorLog.aggregate([
+            { $group: { _id: "$topic", count: { $sum: 1 } } }
+        ]);
+
+        const visitCountMap = new Map(visitCounts.map(item => [item._id.toString(), item.count]));
+
         const topics = await Topic.find({});
 
         const translatedTopics = topics.map(topic => {
@@ -158,14 +166,14 @@ export const getAllTopics = async (req, res) => {
             return {
                 _id: topic._id,
                 topicImagePath: topic.topicImagePath,
-                topicName: nameObj ? nameObj.value : "Tanpa Nama", // Untuk tampilan di tabel
+                topicName: nameObj ? nameObj.value : "Tanpa Nama",
                 topicEntries: topic.topicEntries,
                 status: topic.status,
-                // --- PERBAIKAN DI SINI ---
-                // Sertakan kembali data array nama topik yang asli untuk keperluan edit
                 allTopicNames: topic.topicName,
+                visitCount: visitCountMap.get(topic._id.toString()) || 0
             };
         });
+
         res.status(200).json({
             message: 'Berhasil mengambil semua topik',
             topics: translatedTopics
@@ -180,13 +188,25 @@ export const getAllTopics = async (req, res) => {
 
 export const getTopicById = async (req, res) => {
     try {
-        const topic = await Topic.findById(req.params.id);
+        const topicId = req.params.id;
+        const topic = await Topic.findById(topicId);
+
         if (!topic) {
             return res.status(404).json({ message: 'Topik tidak ditemukan' });
         }
+
+        // Hitung jumlah kunjungan untuk topik ini
+        const visitCount = await VisitorLog.countDocuments({ topic: topicId });
+
+        // Gabungkan data topik dengan jumlah kunjungan
+        const topicWithVisits = {
+            ...topic.toObject(), // Konversi dokumen Mongoose ke objek biasa
+            visitCount: visitCount
+        };
+
         res.status(200).json({
             message: 'Berhasil mengambil topik',
-            topic
+            topic: topicWithVisits
         });
     } catch (error) {
         res.status(500).json({

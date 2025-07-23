@@ -1,11 +1,10 @@
-import React from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { useNavigate, Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 
 const logo = '/assets/images/logo-kang-agam.png';
 
-const Navbar = ({ onMenuToggle, isMenuOpen }) => {
+const Navbar = ({ onMenuToggle, isMenuOpen, totalUniqueVisitors }) => {
     const { logout } = useAuth();
     const navigate = useNavigate();
     const { t, i18n } = useTranslation();
@@ -21,10 +20,14 @@ const Navbar = ({ onMenuToggle, isMenuOpen }) => {
 
     return (
         <header className="flex items-center justify-between gap-4 py-4 px-4 sm:px-6 md:px-8 border-b border-gray-200 bg-white">
-            <Link to="/home">
-                <img src={logo} alt="Kang Agam Logo" className="h-9 sm:h-10 w-auto" />
-            </Link>
-            
+            <div className="flex items-center gap-4">
+                <Link to="/home">
+                    <img src={logo} alt="Kang Agam Logo" className="h-9 sm:h-10 w-auto" />
+                </Link>
+                {/* Display total unique visitors */}
+                <span className="text-sm text-gray-600">Total Unique Visitors: {totalUniqueVisitors}</span>
+            </div>
+
             <nav className="hidden sm:flex items-center gap-3 sm:gap-4">
                 <a href="#" className="text-sm text-gray-600 hover:text-black font-medium">{t('menuA')}</a>
                 <a href="#" className="text-sm text-gray-600 hover:text-black font-medium">{t('menuB')}</a>

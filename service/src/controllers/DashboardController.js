@@ -1,6 +1,7 @@
 import VisitorLog from '../models/VisitorLogModel.js';
 import Learner from '../models/LearnerModel.js';
 import Topic from '../models/TopicModel.js';
+import Admin from '../models/AdminModel.js'; // 1. Import model Admin
 import mongoose from 'mongoose';
 
 const createDateFilter = (period) => {
@@ -41,12 +42,14 @@ export const getDashboardStats = async (req, res) => {
         const cityDateFilter = createDateFilter(cityPeriod);
         const topicDateFilter = createDateFilter(topicPeriod);
         
-        // Kalkulasi semua data secara paralel untuk efisiensi
+        // 2. Tambahkan penghitungan total topik dan admin ke dalam Promise.all
         const [
             totalVisitors,
             visitorDistribution,
             topicVisitDistribution,
-            mostFrequentcity
+            mostFrequentcity,
+            totalTopics, // Tambahkan variabel ini
+            totalAdmins  // Tambahkan variabel ini
         ] = await Promise.all([
             VisitorLog.countDocuments(visitorsDateFilter),
             VisitorLog.aggregate([
@@ -72,15 +75,20 @@ export const getDashboardStats = async (req, res) => {
                 { $sort: { uniqueVisitorCount: -1 } },
                 { $limit: 1 },
                 { $project: { _id: 0, name: "$_id", count: "$uniqueVisitorCount" } }
-            ])
+            ]),
+            Topic.countDocuments(), // Hitung semua dokumen di koleksi Topic
+            Admin.countDocuments()  // Hitung semua dokumen di koleksi Admin
         ]);
 
+        // 3. Sertakan totalTopics dan totalAdmins dalam respons JSON
         res.status(200).json({
             totalVisitors,
             visitorDistribution,
             favoriteTopic: topicVisitDistribution[0] || {},
             topicDistribution: topicVisitDistribution,
             mostfrequentcity: mostFrequentcity[0] || {},
+            totalTopics, // Kirim data total topik
+            totalAdmins, // Kirim data total admin
         });
 
     } catch (error) {

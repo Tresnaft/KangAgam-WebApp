@@ -4,7 +4,8 @@ import Pagination from '../../components/ui/Pagination';
 import TopicFormModal from '../../components/admin/TopicFormModal';
 import ConfirmDeleteModal from '../../components/admin/ConfirmDeleteModal';
 import { getTopics, addTopic, updateTopic, deleteTopic } from '../../services/topicService';
-import { useAuth } from '../../context/AuthContext'; // 1. Import useAuth
+import { useAuth } from '../../context/AuthContext';
+import LoadingIndicator from '../../components/ui/LoadingIndicator'; // Import LoadingIndicator
 
 const ITEMS_PER_PAGE = 5;
 
@@ -13,7 +14,7 @@ const SearchIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-5 
 const PlusIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" /></svg>;
 
 const ManageTopicsPage = () => {
-    const { user } = useAuth(); // 2. Dapatkan data user (termasuk token) dari context
+    const { user } = useAuth();
     const [topicsData, setTopicsData] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState(null);
@@ -26,7 +27,15 @@ const ManageTopicsPage = () => {
     const fetchTopics = async () => {
         try {
             setIsLoading(true);
-            const data = await getTopics();
+            
+            // --- PERBAIKAN DI SINI ---
+            // Menjamin loading indicator tampil minimal 1 detik (1000ms)
+            // Ini akan membuat transisi lebih mulus saat data dimuat cepat
+            const minDelay = new Promise(resolve => setTimeout(resolve, 1000));
+            const dataFetch = getTopics();
+
+            const [data] = await Promise.all([dataFetch, minDelay]);
+
             setTopicsData(data.topics || []);
         } catch (err) {
             setError('Gagal memuat data topik.');
@@ -49,7 +58,6 @@ const ManageTopicsPage = () => {
     const handlePageChange = (pageNumber) => setCurrentPage(pageNumber);
     
     const handleFormSubmit = async (formData) => {
-        // 3. Ambil token dari user object
         const token = user?.token;
         if (!token) {
             alert("Otentikasi gagal. Silakan login kembali.");
@@ -58,11 +66,9 @@ const ManageTopicsPage = () => {
 
         try {
             if (formModalState.mode === 'add') {
-                // 4. Kirim token ke service
                 await addTopic(formData, token);
                 alert('Topik berhasil ditambahkan!');
             } else if (formModalState.mode === 'edit') {
-                // 4. Kirim token ke service
                 await updateTopic(formModalState.data._id, formData, token);
                 alert('Topik berhasil diperbarui!');
             }
@@ -77,7 +83,6 @@ const ManageTopicsPage = () => {
     const handleDeleteConfirm = async () => {
         if (!deleteModalTopic) return;
         
-        // 3. Ambil token dari user object
         const token = user?.token;
         if (!token) {
             alert("Otentikasi gagal. Silakan login kembali.");
@@ -85,7 +90,6 @@ const ManageTopicsPage = () => {
         }
 
         try {
-            // 4. Kirim token ke service
             await deleteTopic(deleteModalTopic._id, token);
             alert('Topik berhasil dihapus!');
             fetchTopics();
@@ -112,23 +116,31 @@ const ManageTopicsPage = () => {
                 </div>
             </div>
 
-            {isLoading ? (
-                <p>Memuat...</p>
-            ) : error ? (
-                <p className="text-red-500">{error}</p>
-            ) : (
-                <div className="bg-white rounded-xl shadow-md overflow-x-auto">
-                    <table className="w-full text-left min-w-[600px]">
-                        <thead className="bg-gray-100">
+            <div className="bg-white rounded-xl shadow-md overflow-x-auto">
+                <table className="w-full text-left min-w-[600px]">
+                    <thead className="bg-gray-100">
+                        <tr>
+                            <th className="p-4 font-bold text-gray-600 w-[5%]">#</th>
+                            <th className="p-4 font-bold text-gray-600 w-[35%]">Nama Topik</th>
+                            <th className="p-4 font-bold text-gray-600 w-[20%]">Total Kosakata</th>
+                            <th className="p-4 font-bold text-gray-600 text-center w-[40%]">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {isLoading ? (
                             <tr>
-                                <th className="p-4 font-bold text-gray-600 w-[5%]">#</th>
-                                <th className="p-4 font-bold text-gray-600 w-[35%]">Nama Topik</th>
-                                <th className="p-4 font-bold text-gray-600 w-[20%]">Total Kosakata</th>
-                                <th className="p-4 font-bold text-gray-600 text-center w-[40%]">Action</th>
+                                <td colSpan="4" className="text-center p-8">
+                                    <LoadingIndicator />
+                                </td>
                             </tr>
-                        </thead>
-                        <tbody>
-                            {currentItems.map((topic, index) => (
+                        ) : error ? (
+                            <tr>
+                                <td colSpan="4" className="text-center p-8 text-red-500">
+                                    {error}
+                                </td>
+                            </tr>
+                        ) : currentItems.length > 0 ? (
+                            currentItems.map((topic, index) => (
                                 <tr key={topic._id} className="border-b border-gray-200 hover:bg-gray-50">
                                     <td className="p-4 text-gray-700">{indexOfFirstItem + index + 1}</td>
                                     <td className="p-4 text-gray-800 font-semibold truncate">{topic.topicName || 'Tanpa Nama'}</td>
@@ -144,14 +156,20 @@ const ManageTopicsPage = () => {
                                         <button onClick={() => setDeleteModalTopic(topic)} className="bg-red-100 text-red-800 text-xs font-bold px-3 py-1.5 rounded-md hover:bg-red-200">Delete</button>
                                     </td>
                                 </tr>
-                            ))}
-                        </tbody>
-                    </table>
-                    <div className="p-4 border-t border-gray-200">
-                        <Pagination currentPage={currentPage} totalPages={totalPages} onPageChange={handlePageChange} totalItems={filteredTopics.length} />
-                    </div>
+                            ))
+                        ) : (
+                            <tr>
+                                <td colSpan="4" className="text-center p-8 text-gray-500">
+                                    Tidak ada topik yang ditemukan.
+                                </td>
+                            </tr>
+                        )}
+                    </tbody>
+                </table>
+                <div className="p-4 border-t border-gray-200">
+                    <Pagination currentPage={currentPage} totalPages={totalPages} onPageChange={handlePageChange} totalItems={filteredTopics.length} />
                 </div>
-            )}
+            </div>
             
             <TopicFormModal 
                 isOpen={formModalState.isOpen}

@@ -4,19 +4,16 @@ const AuthContext = createContext();
 
 export const AuthProvider = ({ children }) => {
     const [user, setUser] = useState(null);
-    // Kita tetap simpan token terpisah untuk jaga-jaga, tapi sumber utama akan ada di object user
     const [token, setToken] = useState(() => localStorage.getItem('token'));
+    // --- PERBAIKAN 1: Tambahkan state untuk status loading autentikasi ---
+    const [isAuthLoading, setIsAuthLoading] = useState(true);
 
     useEffect(() => {
-        // Logika ini berjalan saat aplikasi pertama kali dimuat atau di-refresh
         try {
             const storedUser = localStorage.getItem('user');
             const storedToken = localStorage.getItem('token');
             
             if (storedUser && storedToken) {
-                // --- PERBAIKAN 1: Gabungkan user dan token saat memuat dari localStorage ---
-                // Ini adalah perbaikan paling krusial.
-                // Kita pastikan object 'user' di state SELALU memiliki properti 'token'.
                 const userObject = JSON.parse(storedUser);
                 userObject.token = storedToken;
                 setUser(userObject);
@@ -25,6 +22,9 @@ export const AuthProvider = ({ children }) => {
             console.error("Gagal mem-parsing data dari localStorage", error);
             localStorage.removeItem('user');
             localStorage.removeItem('token');
+        } finally {
+            // --- PERBAIKAN 2: Set loading menjadi false setelah pengecekan selesai ---
+            setIsAuthLoading(false);
         }
     }, []);
 
@@ -34,8 +34,6 @@ export const AuthProvider = ({ children }) => {
             return;
         }
 
-        // --- PERBAIKAN 2: Simpan data user yang lebih lengkap ---
-        // Kita simpan semua data yang relevan agar konsisten.
         const userToStore = {
             _id: userData._id,
             adminName: userData.adminName,
@@ -46,7 +44,6 @@ export const AuthProvider = ({ children }) => {
         localStorage.setItem('user', JSON.stringify(userToStore));
         localStorage.setItem('token', userData.token);
 
-        // --- PERBAIKAN 3: Pastikan object 'user' di state juga memiliki token ---
         const userInState = {
             ...userToStore,
             token: userData.token
@@ -63,9 +60,9 @@ export const AuthProvider = ({ children }) => {
         setToken(null);
     };
 
-    // Kita tetap menyediakan 'token' secara terpisah untuk fleksibilitas
+    // --- PERBAIKAN 3: Kirim isAuthLoading melalui provider ---
     return (
-        <AuthContext.Provider value={{ user, token, login, logout }}>
+        <AuthContext.Provider value={{ user, token, isAuthLoading, login, logout }}>
             {children}
         </AuthContext.Provider>
     );

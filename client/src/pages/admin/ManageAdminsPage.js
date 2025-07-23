@@ -12,7 +12,7 @@ import AdminLimitSettings from '../../components/admin/AdminLimitSettings';
 const ITEMS_PER_PAGE = 5;
 
 // Komponen Ikon
-const SearchIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-text-secondary" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>;
+const SearchIcon = () => <svg xmlns="http://www.w.3.org/2000/svg" className="h-5 w-5 text-text-secondary" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>;
 const PlusIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" /></svg>;
 
 const ManageAdminsPage = () => {
@@ -26,15 +26,21 @@ const ManageAdminsPage = () => {
     const [currentPage, setCurrentPage] = useState(1);
     const [settings, setSettings] = useState({ maxAdmins: 5 });
 
-    // Menggabungkan fetch admin dan settings
     const fetchData = useCallback(async () => {
         if (!user?.token) return;
         setIsLoading(true);
         try {
+            // --- PERBAIKAN DI SINI ---
+            const minDelay = new Promise(resolve => setTimeout(resolve, 1000));
+            const adminFetch = adminService.getAllAdmins(user.token);
+            const settingsFetch = settingService.getSettings(user.token);
+
             const [adminResponse, settingsResponse] = await Promise.all([
-                adminService.getAllAdmins(user.token),
-                settingService.getSettings(user.token)
+                adminFetch,
+                settingsFetch,
+                minDelay
             ]);
+
             setAdminsData(adminResponse.data || []);
             setSettings(settingsResponse || { maxAdmins: 5 });
             setError(null);
@@ -75,11 +81,10 @@ const ManageAdminsPage = () => {
                 await adminService.updateAdmin(modalState.data._id, formData, user.token);
                 alert('Admin berhasil diperbarui!');
             }
-            fetchData(); // Ambil ulang data untuk update count
+            fetchData();
             handleCloseModal();
         } catch (err) {
             console.error('Form submit error:', err);
-            // Menampilkan pesan error dari backend jika ada
             const errorMessage = err.message || 'Terjadi kesalahan.';
             alert(errorMessage);
         } finally {
@@ -93,7 +98,7 @@ const ManageAdminsPage = () => {
         try {
             await adminService.deleteAdmin(modalState.data._id, user.token);
             alert('Admin berhasil dihapus!');
-            fetchData(); // Ambil ulang data untuk update count
+            fetchData();
             handleCloseModal();
         } catch (err) {
             console.error('Delete admin error:', err);
@@ -105,13 +110,6 @@ const ManageAdminsPage = () => {
     };
 
     const isLimitReached = adminsData.length >= settings.maxAdmins;
-
-    // --- DEBUGGING LOG DI SINI ---
-    // Mari kita lihat apa sebenarnya isi dari user.role
-    if (user) {
-        console.log("Current user role:", user.role);
-        console.log("Comparison result:", user.role?.toLowerCase() === 'superadmin');
-    }
 
     return (
         <div>
@@ -147,24 +145,28 @@ const ManageAdminsPage = () => {
                 </div>
             </div>
 
-            {isLoading ? (
-                <LoadingIndicator />
-            ) : error ? (
-                <p className="text-red-500 text-center">{error}</p>
-            ) : (
-                <div className="bg-background-secondary rounded-xl shadow-md overflow-x-auto">
-                    <table className="w-full text-left min-w-[600px]">
-                        <thead className="bg-slate-50 dark:bg-gray-700/50">
+            <div className="bg-background-secondary rounded-xl shadow-md overflow-x-auto">
+                <table className="w-full text-left min-w-[600px]">
+                    <thead className="bg-slate-50 dark:bg-gray-700/50">
+                        <tr>
+                            <th className="p-4 font-bold text-text-secondary w-[5%]">#</th>
+                            <th className="p-4 font-bold text-text-secondary w-[25%]">Nama</th>
+                            <th className="p-4 font-bold text-text-secondary w-[30%]">E-Mail</th>
+                            <th className="p-4 font-bold text-text-secondary w-[15%]">Role</th>
+                            <th className="p-4 font-bold text-text-secondary text-center w-[25%]">Aksi</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {isLoading ? (
                             <tr>
-                                <th className="p-4 font-bold text-text-secondary w-[5%]">#</th>
-                                <th className="p-4 font-bold text-text-secondary w-[25%]">Nama</th>
-                                <th className="p-4 font-bold text-text-secondary w-[30%]">E-Mail</th>
-                                <th className="p-4 font-bold text-text-secondary w-[15%]">Role</th>
-                                <th className="p-4 font-bold text-text-secondary text-center w-[25%]">Aksi</th>
+                                <td colSpan="5" className="text-center p-8"><LoadingIndicator /></td>
                             </tr>
-                        </thead>
-                        <tbody>
-                            {currentItems.map((admin, index) => (
+                        ) : error ? (
+                            <tr>
+                                <td colSpan="5" className="text-center p-8 text-red-500">{error}</td>
+                            </tr>
+                        ) : currentItems.length > 0 ? (
+                            currentItems.map((admin, index) => (
                                 <tr key={admin._id} className="border-b border-background hover:bg-background">
                                     <td className="p-4 text-text-secondary">{indexOfFirstItem + index + 1}</td>
                                     <td className="p-4 text-text font-semibold truncate">{admin.adminName}</td>
@@ -185,19 +187,23 @@ const ManageAdminsPage = () => {
                                         </button>
                                     </td>
                                 </tr>
-                            ))}
-                        </tbody>
-                    </table>
-                    <div className="p-4 border-t border-background">
-                        <Pagination
-                            currentPage={currentPage}
-                            totalPages={totalPages}
-                            onPageChange={handlePageChange}
-                            totalItems={filteredAdmins.length}
-                        />
-                    </div>
+                            ))
+                        ) : (
+                            <tr>
+                                <td colSpan="5" className="text-center p-8 text-gray-500">Tidak ada admin yang ditemukan.</td>
+                            </tr>
+                        )}
+                    </tbody>
+                </table>
+                <div className="p-4 border-t border-background">
+                    <Pagination
+                        currentPage={currentPage}
+                        totalPages={totalPages}
+                        onPageChange={handlePageChange}
+                        totalItems={filteredAdmins.length}
+                    />
                 </div>
-            )}
+            </div>
 
             <AdminFormModal
                 isOpen={modalState.type === 'form'}

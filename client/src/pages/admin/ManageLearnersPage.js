@@ -24,7 +24,12 @@ const ManageLearnersPage = () => {
         if (!user?.token) return;
         setIsLoading(true);
         try {
-            const response = await learnerService.getAllLearners(user.token);
+            // --- PERBAIKAN DI SINI ---
+            const minDelay = new Promise(resolve => setTimeout(resolve, 1000));
+            const dataFetch = learnerService.getAllLearners(user.token);
+
+            const [response] = await Promise.all([dataFetch, minDelay]);
+
             setLearners(response.data || []);
             setError(null);
         } catch (err) {
@@ -82,26 +87,28 @@ const ManageLearnersPage = () => {
                 </div>
             </div>
 
-            {isLoading ? (
-                <LoadingIndicator />
-            ) : error ? (
-                <p className="text-center text-red-500">{error}</p>
-            ) : (
-                <div className="bg-background-secondary rounded-xl shadow-md overflow-x-auto">
-                    <table className="w-full text-left min-w-[600px]">
-                        {/* --- PERBAIKAN 1: Warna header diubah untuk kontras yang lebih baik --- */}
-                        <thead className="bg-slate-50 dark:bg-gray-700/50">
+            <div className="bg-background-secondary rounded-xl shadow-md overflow-x-auto">
+                <table className="w-full text-left min-w-[600px]">
+                    <thead className="bg-slate-50 dark:bg-gray-700/50">
+                        <tr>
+                            <th className="p-4 font-bold text-text-secondary w-[5%]">#</th>
+                            <th className="p-4 font-bold text-text-secondary w-[35%]">Nama Lengkap</th>
+                            <th className="p-4 font-bold text-text-secondary w-[25%]">Domisili</th>
+                            <th className="p-4 font-bold text-text-secondary w-[20%]">No. Telepon</th>
+                            <th className="p-4 font-bold text-text-secondary text-center w-[15%]">Aksi</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {isLoading ? (
                             <tr>
-                                {/* --- PERBAIKAN 2: Lebar kolom diatur --- */}
-                                <th className="p-4 font-bold text-text-secondary w-[5%]">#</th>
-                                <th className="p-4 font-bold text-text-secondary w-[35%]">Nama Lengkap</th>
-                                <th className="p-4 font-bold text-text-secondary w-[25%]">Domisili</th>
-                                <th className="p-4 font-bold text-text-secondary w-[20%]">No. Telepon</th>
-                                <th className="p-4 font-bold text-text-secondary text-center w-[15%]">Aksi</th>
+                                <td colSpan="5" className="text-center p-8"><LoadingIndicator /></td>
                             </tr>
-                        </thead>
-                        <tbody>
-                            {currentItems.map((learner, index) => (
+                        ) : error ? (
+                            <tr>
+                                <td colSpan="5" className="text-center p-8 text-red-500">{error}</td>
+                            </tr>
+                        ) : currentItems.length > 0 ? (
+                            currentItems.map((learner, index) => (
                                 <tr key={learner._id} className="border-b border-background hover:bg-background">
                                     <td className="p-4 text-text-secondary">{indexOfFirstItem + index + 1}</td>
                                     <td className="p-4 text-text font-semibold">{learner.learnerName}</td>
@@ -116,19 +123,23 @@ const ManageLearnersPage = () => {
                                         </button>
                                     </td>
                                 </tr>
-                            ))}
-                        </tbody>
-                    </table>
-                    <div className="p-4 border-t border-background">
-                        <Pagination 
-                            currentPage={currentPage} 
-                            totalPages={totalPages} 
-                            onPageChange={(page) => setCurrentPage(page)} 
-                            totalItems={filteredLearners.length} 
-                        />
-                    </div>
+                            ))
+                        ) : (
+                            <tr>
+                                <td colSpan="5" className="text-center p-8 text-gray-500">Tidak ada pengguna yang ditemukan.</td>
+                            </tr>
+                        )}
+                    </tbody>
+                </table>
+                <div className="p-4 border-t border-background">
+                    <Pagination 
+                        currentPage={currentPage} 
+                        totalPages={totalPages} 
+                        onPageChange={(page) => setCurrentPage(page)} 
+                        totalItems={filteredLearners.length} 
+                    />
                 </div>
-            )}
+            </div>
 
             <ConfirmDeleteModal
                 isOpen={!!learnerToDelete}

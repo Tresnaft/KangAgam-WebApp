@@ -7,7 +7,8 @@ import ImageModal from '../../components/admin/ImageModal';
 import AudioPlayerModal from '../../components/admin/AudioPlayerModal';
 import { getEntriesByTopicId, addEntry, updateEntry, deleteEntry } from '../../services/entryService';
 import { getTopicById } from '../../services/topicService';
-import { useAuth } from '../../context/AuthContext'; // 1. Import useAuth
+import { useAuth } from '../../context/AuthContext';
+import LoadingIndicator from '../../components/ui/LoadingIndicator';
 
 const ITEMS_PER_PAGE = 5;
 
@@ -16,7 +17,7 @@ const SearchIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-5 
 const PlusIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" /></svg>;
 
 const ManageWordsPage = () => {
-    const { user } = useAuth(); // 2. Dapatkan data user dari context
+    const { user } = useAuth();
     const { topicId } = useParams();
     const [topicName, setTopicName] = useState('');
     const [wordsData, setWordsData] = useState([]);
@@ -35,9 +36,16 @@ const ManageWordsPage = () => {
     const fetchData = useCallback(async () => {
         try {
             setIsLoading(true);
+            
+            // --- PERBAIKAN DI SINI ---
+            const minDelay = new Promise(resolve => setTimeout(resolve, 1000));
+            const topicInfoFetch = getTopicById(topicId);
+            const entriesDataFetch = getEntriesByTopicId(topicId);
+
             const [topicInfo, entriesData] = await Promise.all([
-                getTopicById(topicId),
-                getEntriesByTopicId(topicId)
+                topicInfoFetch,
+                entriesDataFetch,
+                minDelay
             ]);
             
             const mainTopicName = topicInfo.topic.topicName.find(t => t.lang === 'id')?.value || 'Topik';
@@ -72,7 +80,6 @@ const ManageWordsPage = () => {
     const handlePageChange = (pageNumber) => setCurrentPage(pageNumber);
 
     const handleFormSubmit = async (formData) => {
-        // 3. Ambil token dari user object
         const token = user?.token;
         if (!token) {
             alert("Otentikasi gagal. Silakan login kembali.");
@@ -81,11 +88,9 @@ const ManageWordsPage = () => {
 
         try {
             if (formModalState.mode === 'add') {
-                // 4. Kirim token ke service
                 await addEntry(topicId, formData, token);
                 alert('Kosakata berhasil ditambahkan!');
             } else if (formModalState.mode === 'edit') {
-                // 4. Kirim token ke service
                 await updateEntry(topicId, formModalState.data._id, formData, token);
                 alert('Kosakata berhasil diperbarui!');
             }
@@ -100,7 +105,6 @@ const ManageWordsPage = () => {
     const handleDeleteConfirm = async () => {
         if (!deleteModalWord) return;
         
-        // 3. Ambil token dari user object
         const token = user?.token;
         if (!token) {
             alert("Otentikasi gagal. Silakan login kembali.");
@@ -108,7 +112,6 @@ const ManageWordsPage = () => {
         }
 
         try {
-            // 4. Kirim token ke service
             await deleteEntry(topicId, deleteModalWord._id, token);
             alert('Kosakata berhasil dihapus!');
             fetchData();
@@ -142,26 +145,30 @@ const ManageWordsPage = () => {
                 </div>
             </div>
 
-            {isLoading ? (
-                <p>Memuat...</p>
-            ) : error ? (
-                <p className="text-red-500">{error}</p>
-            ) : (
-                <div className="bg-white rounded-xl shadow-md overflow-x-auto">
-                    <table className="w-full text-left min-w-[800px]">
-                        <thead className="bg-gray-100">
+            <div className="bg-white rounded-xl shadow-md overflow-x-auto">
+                <table className="w-full text-left min-w-[800px]">
+                    <thead className="bg-gray-100">
+                        <tr>
+                            <th className="p-4 font-bold text-gray-600 w-[5%]">#</th>
+                            <th className="p-4 font-bold text-gray-600 w-[18%]">Indonesia</th>
+                            <th className="p-4 font-bold text-gray-600 w-[18%]">Sunda</th>
+                            <th className="p-4 font-bold text-gray-600 w-[18%]">Inggris</th>
+                            <th className="p-4 font-bold text-gray-600 w-[12%]">Gambar</th>
+                            <th className="p-4 font-bold text-gray-600 w-[12%]">Audio</th>
+                            <th className="p-4 font-bold text-gray-600 text-center w-[17%]">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {isLoading ? (
                             <tr>
-                                <th className="p-4 font-bold text-gray-600 w-[5%]">#</th>
-                                <th className="p-4 font-bold text-gray-600 w-[18%]">Indonesia</th>
-                                <th className="p-4 font-bold text-gray-600 w-[18%]">Sunda</th>
-                                <th className="p-4 font-bold text-gray-600 w-[18%]">Inggris</th>
-                                <th className="p-4 font-bold text-gray-600 w-[12%]">Gambar</th>
-                                <th className="p-4 font-bold text-gray-600 w-[12%]">Audio</th>
-                                <th className="p-4 font-bold text-gray-600 text-center w-[17%]">Action</th>
+                                <td colSpan="7" className="text-center p-8"><LoadingIndicator /></td>
                             </tr>
-                        </thead>
-                        <tbody>
-                            {currentItems.map((entry, index) => (
+                        ) : error ? (
+                            <tr>
+                                <td colSpan="7" className="text-center p-8 text-red-500">{error}</td>
+                            </tr>
+                        ) : currentItems.length > 0 ? (
+                            currentItems.map((entry, index) => (
                                 <tr key={entry._id} className="border-b border-gray-200 hover:bg-gray-50">
                                     <td className="p-4 text-gray-700">{indexOfFirstItem + index + 1}</td>
                                     <td className="p-4 text-gray-800 font-semibold truncate">{findVocab(entry, 'id')}</td>
@@ -178,14 +185,18 @@ const ManageWordsPage = () => {
                                         <button onClick={() => setDeleteModalWord(entry)} className="bg-red-100 text-red-800 text-xs font-bold px-3 py-1.5 rounded-md hover:bg-red-200">Delete</button>
                                     </td>
                                 </tr>
-                            ))}
-                        </tbody>
-                    </table>
-                     <div className="p-4 border-t border-gray-200">
-                        <Pagination currentPage={currentPage} totalPages={totalPages} onPageChange={handlePageChange} totalItems={filteredWords.length} />
-                    </div>
+                            ))
+                        ) : (
+                             <tr>
+                                <td colSpan="7" className="text-center p-8 text-gray-500">Belum ada kosakata di topik ini.</td>
+                            </tr>
+                        )}
+                    </tbody>
+                </table>
+                 <div className="p-4 border-t border-gray-200">
+                    <Pagination currentPage={currentPage} totalPages={totalPages} onPageChange={handlePageChange} totalItems={filteredWords.length} />
                 </div>
-            )}
+            </div>
             
             <ImageModal imageUrl={imageModalUrl} onClose={() => setImageModalUrl(null)} />
             <AudioPlayerModal entry={audioModalEntry} onClose={() => setAudioModalEntry(null)} />

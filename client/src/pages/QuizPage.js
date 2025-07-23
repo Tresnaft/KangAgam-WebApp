@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -24,7 +24,7 @@ const modalContainerVariants = {
     visible: {
         opacity: 1,
         transition: {
-            staggerChildren: 0.2, // Memberi jeda antar animasi anak-anaknya
+            staggerChildren: 0.2,
         },
     },
 };
@@ -39,6 +39,7 @@ const QuizPage = () => {
     const { topicId } = useParams();
     const { i18n, t } = useTranslation();
     const navigate = useNavigate();
+    const audioRef = useRef(null);
 
     const [topicName, setTopicName] = useState('');
     const [allEntries, setAllEntries] = useState([]);
@@ -51,15 +52,40 @@ const QuizPage = () => {
     const [feedback, setFeedback] = useState({ show: false, correct: false, selectedId: null });
     const [quizState, setQuizState] = useState('loading');
 
-    // --- PERBAIKAN 2: Fungsi untuk memutar audio ---
     const playQuestionAudio = useCallback((audioUrl) => {
         if (!audioUrl) return;
-        try {
-            const audio = new Audio(`http://localhost:5000${audioUrl}`);
-            audio.play();
-        } catch (error) {
-            console.error("Gagal memutar audio:", error);
+
+        // Hentikan audio sebelumnya jika ada yang sedang berjalan
+        if (audioRef.current) {
+            audioRef.current.pause();
         }
+
+        const audio = new Audio(`http://localhost:5000${audioUrl}`);
+        audioRef.current = audio;
+
+        // --- PERBAIKAN DI SINI ---
+        // Memainkan audio dan menangani error interupsi secara spesifik
+        const playPromise = audio.play();
+        if (playPromise !== undefined) {
+            playPromise.catch(error => {
+                // Error 'AbortError' adalah error yang terjadi saat play() diinterupsi oleh pause().
+                // Kita bisa mengabaikannya dengan aman karena ini disebabkan oleh kode kita sendiri
+                // (misalnya saat pindah pertanyaan atau saat cleanup di StrictMode).
+                if (error.name !== 'AbortError') {
+                    console.error("Error saat memutar audio:", error);
+                }
+            });
+        }
+    }, []);
+
+    useEffect(() => {
+        // Fungsi cleanup ini tetap penting untuk menghentikan audio saat pengguna meninggalkan halaman
+        return () => {
+            if (audioRef.current) {
+                audioRef.current.pause();
+                audioRef.current = null;
+            }
+        };
     }, []);
 
     const setupQuestion = useCallback((questionIndex, allEntriesSource) => {
@@ -73,7 +99,6 @@ const QuizPage = () => {
         const finalOptions = shuffleArray([correctAnswer, ...shuffledWrongOptions]);
         setOptions(finalOptions);
 
-        // Putar audio untuk pertanyaan saat ini
         const audioUrl = findVocab(currentQ, i18n.language)?.audioUrl;
         playQuestionAudio(audioUrl);
 
@@ -230,7 +255,6 @@ const QuizPage = () => {
                         initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
                         className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4"
                     >
-                        {/* --- PERBAIKAN 1: Terapkan varian animasi container --- */}
                         <motion.div 
                             variants={modalContainerVariants}
                             initial="hidden"

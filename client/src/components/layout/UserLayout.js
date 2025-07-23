@@ -8,7 +8,7 @@ import { useAuth } from '../../context/AuthContext';
 const UserLayout = () => {
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const [totalUniqueVisitors, setTotalUniqueVisitors] = useState(0);
-    const { token } = useAuth(); // Destructure token instead of getToken
+    const { token } = useAuth();
 
     const toggleMenu = () => setIsMenuOpen(!isMenuOpen);
 
@@ -19,12 +19,12 @@ const UserLayout = () => {
                     throw new Error('Token is not available.');
                 }
                 const response = await axios.get('http://localhost:5000/api/visitor-logs/stats', {
-                    headers: { Authorization: `Bearer ${token}` }, // Use token directly
+                    headers: { Authorization: `Bearer ${token}` },
                 });
                 setTotalUniqueVisitors(response.data.totalUniqueVisitors || 0);
             } catch (error) {
                 console.error('Failed to fetch visitor stats:', error);
-                setTotalUniqueVisitors(0); // Default to 0 on error
+                setTotalUniqueVisitors(0);
             }
         };
         fetchStats();
@@ -32,6 +32,12 @@ const UserLayout = () => {
 
     return (
         <>
+            {/* --- PERBAIKAN 1: Tambahkan style untuk scrollbar-gutter --- */}
+            <style>{`
+                .stable-scrollbar {
+                    scrollbar-gutter: stable;
+                }
+            `}</style>
             <MobileMenu isOpen={isMenuOpen} onClose={toggleMenu} />
             <div className="bg-[#FFFBEB] flex flex-col h-screen overflow-hidden">
                 <header className="sticky top-0 z-20 bg-white/80 backdrop-blur-sm shadow-sm">
@@ -41,11 +47,8 @@ const UserLayout = () => {
                         totalUniqueVisitors={totalUniqueVisitors}
                     />
                 </header>
-                {/* --- PERBAIKAN DI SINI --- */}
-                {/* Mengubah overflow-y-auto menjadi overflow-y-scroll */}
-                {/* Ini akan membuat scrollbar selalu ada (tapi nonaktif jika tidak perlu), */}
-                {/* sehingga menghilangkan efek flicker saat pindah halaman. */}
-                <main className="flex-grow overflow-y-scroll">
+                {/* --- PERBAIKAN 2: Gunakan overflow-y-auto dan class baru --- */}
+                <main className="flex-grow overflow-y-auto stable-scrollbar">
                     <Outlet />
                 </main>
             </div>

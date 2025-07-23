@@ -34,8 +34,15 @@ const HomePage = () => {
         const fetchData = async () => {
             try {
                 setIsLoading(true);
-                // getTopics sekarang akan mengembalikan data dengan visitCount
-                const data = await getTopics(i18n.language);
+                
+                // --- PERBAIKAN DI SINI ---
+                // Menjamin LoadingIndicator tampil minimal 3 detik
+                const minDelay = new Promise(resolve => setTimeout(resolve, 1500));
+                const dataFetch = getTopics(i18n.language);
+
+                // Menunggu keduanya selesai
+                const [data] = await Promise.all([dataFetch, minDelay]);
+                
                 setTopics(data.topics || []);
                 setError(null);
             } catch (err) {
@@ -85,7 +92,6 @@ const HomePage = () => {
                                 title={topic.topicName}
                                 imageUrl={`http://localhost:5000${topic.topicImagePath}`}
                                 onClick={() => handleTopicClick(topic._id)}
-                                // 1. Teruskan field 'visitCount' yang baru dari API
                                 visitCount={topic.visitCount}
                             />
                         ))}

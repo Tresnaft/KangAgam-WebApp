@@ -33,7 +33,7 @@ const UserLayout = () => {
     return (
         <>
             <MobileMenu isOpen={isMenuOpen} onClose={toggleMenu} />
-            <div className="bg-[#FFFBEB] flex flex-col min-h-screen">
+            <div className="bg-[#FFFBEB] flex flex-col h-screen overflow-hidden">
                 <header className="sticky top-0 z-20 bg-white/80 backdrop-blur-sm shadow-sm">
                     <Navbar
                         onMenuToggle={toggleMenu}
@@ -41,7 +41,11 @@ const UserLayout = () => {
                         totalUniqueVisitors={totalUniqueVisitors}
                     />
                 </header>
-                <main className="flex-grow overflow-y-auto">
+                {/* --- PERBAIKAN DI SINI --- */}
+                {/* Mengubah overflow-y-auto menjadi overflow-y-scroll */}
+                {/* Ini akan membuat scrollbar selalu ada (tapi nonaktif jika tidak perlu), */}
+                {/* sehingga menghilangkan efek flicker saat pindah halaman. */}
+                <main className="flex-grow overflow-y-scroll">
                     <Outlet />
                 </main>
             </div>

@@ -35,10 +35,18 @@ const KosakataPage = () => {
         const fetchData = async () => {
             try {
                 setIsLoading(true);
-                // API `getTopicById` sekarang akan mengembalikan data topik beserta `visitCount`
+
+                // --- PERBAIKAN DI SINI ---
+                // Menjamin LoadingIndicator tampil minimal 3 detik
+                const minDelay = new Promise(resolve => setTimeout(resolve, 1500));
+                const topicDataFetch = getTopicById(topicId);
+                const entriesDataFetch = getEntriesByTopicId(topicId);
+
+                // Menunggu semua promise selesai
                 const [topicData, entriesData] = await Promise.all([
-                    getTopicById(topicId),
-                    getEntriesByTopicId(topicId)
+                    topicDataFetch,
+                    entriesDataFetch,
+                    minDelay
                 ]);
 
                 setTopicInfo(topicData.topic);
@@ -87,7 +95,6 @@ const KosakataPage = () => {
             className="p-4 sm:p-6 lg:p-8 pt-4"
         >
             <div className="max-w-7xl mx-auto">
-                {/* 1. Teruskan `visitCount` dari state `topicInfo` ke PageHeader */}
                 <PageHeader 
                     title={getTranslatedTopicName()}
                     visitCount={topicInfo?.visitCount}

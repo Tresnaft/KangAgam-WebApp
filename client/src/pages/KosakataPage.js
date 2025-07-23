@@ -88,22 +88,24 @@ const KosakataPage = () => {
             exit="out"
             variants={pageVariants}
             transition={pageTransition}
-            className="p-4 sm:p-6 lg:p-8 pt-4"
         >
-            <div className="max-w-7xl mx-auto">
-                {/* --- PERBAIKAN 1: Wrapper untuk membuat PageHeader sticky --- */}
-                <div className="sticky top-0 z-10 bg-[#FFFBEB] pt-4">
-                    <PageHeader 
-                        title={getTranslatedTopicName()}
-                        visitCount={topicInfo?.visitCount}
-                    >
-                        <div className='flex items-center gap-4'>
-                            <Link to={`/quiz/${topicId}`} className="bg-blue-100 text-blue-800 font-bold px-4 py-2 rounded-lg text-sm hover:bg-blue-200">{t('quizButton')}</Link>
-                            <Link to="/home" className="text-sm text-gray-600 hover:text-black">&larr; {t("backButton")}</Link>
-                        </div>
-                    </PageHeader>
+            <div className="sticky top-0 z-10 bg-[#FFFBEB] border-b border-gray-200">
+                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                    <div className="py-5">
+                        <PageHeader 
+                            title={getTranslatedTopicName()}
+                            visitCount={topicInfo?.visitCount}
+                        >
+                            <div className='flex items-center gap-4'>
+                                <Link to={`/quiz/${topicId}`} className="bg-blue-100 text-blue-800 font-bold px-4 py-2 rounded-lg text-sm hover:bg-blue-200">{t('quizButton')}</Link>
+                                <Link to="/home" className="text-sm text-gray-600 hover:text-black">&larr; {t("backButton")}</Link>
+                            </div>
+                        </PageHeader>
+                    </div>
                 </div>
-            
+            </div>
+
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                 {error && <p className="text-center text-red-500">{error}</p>}
 
                 {!error && !isLoading && entries.length === 0 && (
@@ -113,11 +115,13 @@ const KosakataPage = () => {
                 )}
                 
                 {!error && entries.length > 0 && (
-                    <div className="lg:grid lg:grid-cols-12 lg:gap-8 lg:items-start mt-8">
+                    // --- PERBAIKAN DI SINI ---
+                    // Menghapus 'lg:items-start' agar kolom kiri bisa meregang setinggi kolom kanan
+                    <div className="lg:grid lg:grid-cols-12 lg:gap-8 mt-8">
                         {/* --- Kolom Kiri (Kotak Merah) --- */}
                         <div className="lg:col-span-4">
-                            {/* --- PERBAIKAN 2: Menyesuaikan posisi top agar di bawah PageHeader --- */}
-                            <div className="lg:sticky top-28">
+                            {/* Mengembalikan ke 'sticky' dengan posisi yang sudah disesuaikan */}
+                            <div className="lg:sticky top-32">
                                 <div className="bg-gray-100 rounded-2xl shadow-inner overflow-hidden">
                                     <div className="aspect-square">
                                         {activeEntry ? (
@@ -139,7 +143,8 @@ const KosakataPage = () => {
 
                         {/* --- Kolom Kanan (Kotak Hijau) --- */}
                         <div className="lg:col-span-8 mt-8 lg:mt-0">
-                            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+                            {/* Menambahkan padding bawah untuk memberi ruang scroll di akhir */}
+                            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 pb-32">
                                 {entries.map((entry) => {
                                     const currentVocab = findVocab(entry, i18n.language);
                                     if (!currentVocab) return null;

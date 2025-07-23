@@ -9,16 +9,17 @@ const EyeIcon = () => (
 );
 
 
-// 1. Komponen sekarang menerima prop 'visitCount'
+// Komponen sekarang menerima prop 'visitCount'
 const PageHeader = ({ title, children, visitCount }) => {
     return (
-        <div className="flex flex-col sm:flex-row justify-between items-center text-center sm:text-left mb-6 md:mb-8">
-            {/* 2. Bungkus judul dan visit count agar tetap bersama */}
+        // --- PERBAIKAN DI SINI ---
+        // Menghapus margin bawah (mb-6 md:mb-8) agar lebih fleksibel.
+        // Penataan jarak sekarang akan diatur oleh halaman yang menggunakannya.
+        <div className="flex flex-col sm:flex-row justify-between items-center text-center sm:text-left">
             <div>
                 <div className="flex items-center gap-3 justify-center sm:justify-start">
                     <h1 className="text-3xl sm:text-4xl font-extrabold text-gray-800 tracking-tight">{title}</h1>
                     
-                    {/* 3. Tampilkan visit count jika nilainya ada dan lebih dari 0 */}
                     {typeof visitCount === 'number' && visitCount > 0 && (
                         <div className="flex items-center gap-1.5 text-sm text-gray-500 bg-gray-200 px-3 py-1 rounded-full mt-1">
                             <EyeIcon />

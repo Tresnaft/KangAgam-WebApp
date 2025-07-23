@@ -35,12 +35,9 @@ const HomePage = () => {
             try {
                 setIsLoading(true);
                 
-                // --- PERBAIKAN DI SINI ---
-                // Menjamin LoadingIndicator tampil minimal 3 detik
-                const minDelay = new Promise(resolve => setTimeout(resolve, 1500));
+                const minDelay = new Promise(resolve => setTimeout(resolve, 3000));
                 const dataFetch = getTopics(i18n.language);
 
-                // Menunggu keduanya selesai
                 const [data] = await Promise.all([dataFetch, minDelay]);
                 
                 setTopics(data.topics || []);
@@ -77,15 +74,24 @@ const HomePage = () => {
             exit="out"
             variants={pageVariants}
             transition={pageTransition}
-            className="px-4 sm:px-6 lg:px-8 py-8"
+            className="pb-32"
         >
-            <div className="max-w-7xl mx-auto">
-                <PageHeader title={t('welcomeMessage')} />
+            {/* --- PERBAIKAN 1: Wrapper Header Sticky Full-Width --- */}
+            <div className="sticky top-0 z-10 bg-[#FFFBEB] border-b border-gray-200">
+                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                    <div className="py-5">
+                        <PageHeader title={t('welcomeMessage')} />
+                    </div>
+                </div>
+            </div>
 
+            {/* --- PERBAIKAN 2: Wrapper Konten Utama --- */}
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                 {error ? (
-                    <p className="text-center text-red-500">{error}</p>
+                    <p className="text-center text-red-500 mt-8">{error}</p>
                 ) : (
-                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 sm:gap-6">
+                    // Menambahkan margin atas agar tidak terlalu dekat dengan header
+                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 sm:gap-6 mt-8">
                         {topics.map((topic) => (
                             <TopicCard
                                 key={topic._id}

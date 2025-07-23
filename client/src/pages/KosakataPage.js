@@ -36,13 +36,10 @@ const KosakataPage = () => {
             try {
                 setIsLoading(true);
 
-                // --- PERBAIKAN DI SINI ---
-                // Menjamin LoadingIndicator tampil minimal 3 detik
-                const minDelay = new Promise(resolve => setTimeout(resolve, 1500));
+                const minDelay = new Promise(resolve => setTimeout(resolve, 3000));
                 const topicDataFetch = getTopicById(topicId);
                 const entriesDataFetch = getEntriesByTopicId(topicId);
 
-                // Menunggu semua promise selesai
                 const [topicData, entriesData] = await Promise.all([
                     topicDataFetch,
                     entriesDataFetch,
@@ -71,7 +68,6 @@ const KosakataPage = () => {
         return <LoadingIndicator />;
     }
 
-    // Helper untuk mencari vocab berdasarkan bahasa
     const findVocab = (entry, lang) => {
         if (!entry || !entry.entryVocabularies) return null;
         return entry.entryVocabularies.find(v => v.language.languageCode === lang) || entry.entryVocabularies[0];
@@ -95,15 +91,18 @@ const KosakataPage = () => {
             className="p-4 sm:p-6 lg:p-8 pt-4"
         >
             <div className="max-w-7xl mx-auto">
-                <PageHeader 
-                    title={getTranslatedTopicName()}
-                    visitCount={topicInfo?.visitCount}
-                >
-                    <div className='flex items-center gap-4'>
-                        <Link to={`/quiz/${topicId}`} className="bg-blue-100 text-blue-800 font-bold px-4 py-2 rounded-lg text-sm hover:bg-blue-200">{t('quizButton')}</Link>
-                        <Link to="/home" className="text-sm text-gray-600 hover:text-black">&larr; {t("backButton")}</Link>
-                    </div>
-                </PageHeader>
+                {/* --- PERBAIKAN 1: Wrapper untuk membuat PageHeader sticky --- */}
+                <div className="sticky top-0 z-10 bg-[#FFFBEB] pt-4">
+                    <PageHeader 
+                        title={getTranslatedTopicName()}
+                        visitCount={topicInfo?.visitCount}
+                    >
+                        <div className='flex items-center gap-4'>
+                            <Link to={`/quiz/${topicId}`} className="bg-blue-100 text-blue-800 font-bold px-4 py-2 rounded-lg text-sm hover:bg-blue-200">{t('quizButton')}</Link>
+                            <Link to="/home" className="text-sm text-gray-600 hover:text-black">&larr; {t("backButton")}</Link>
+                        </div>
+                    </PageHeader>
+                </div>
             
                 {error && <p className="text-center text-red-500">{error}</p>}
 
@@ -115,8 +114,10 @@ const KosakataPage = () => {
                 
                 {!error && entries.length > 0 && (
                     <div className="lg:grid lg:grid-cols-12 lg:gap-8 lg:items-start mt-8">
+                        {/* --- Kolom Kiri (Kotak Merah) --- */}
                         <div className="lg:col-span-4">
-                            <div className="lg:sticky top-24">
+                            {/* --- PERBAIKAN 2: Menyesuaikan posisi top agar di bawah PageHeader --- */}
+                            <div className="lg:sticky top-28">
                                 <div className="bg-gray-100 rounded-2xl shadow-inner overflow-hidden">
                                     <div className="aspect-square">
                                         {activeEntry ? (
@@ -136,6 +137,7 @@ const KosakataPage = () => {
                             </div>
                         </div>
 
+                        {/* --- Kolom Kanan (Kotak Hijau) --- */}
                         <div className="lg:col-span-8 mt-8 lg:mt-0">
                             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
                                 {entries.map((entry) => {

@@ -4,18 +4,22 @@ const AuthContext = createContext();
 
 export const AuthProvider = ({ children }) => {
     const [user, setUser] = useState(null);
-    const [token, setToken] = useState(null);
+    // Kita tetap simpan token terpisah untuk jaga-jaga, tapi sumber utama akan ada di object user
+    const [token, setToken] = useState(() => localStorage.getItem('token'));
 
-    // Load user and token from localStorage on mount
     useEffect(() => {
+        // Logika ini berjalan saat aplikasi pertama kali dimuat atau di-refresh
         try {
             const storedUser = localStorage.getItem('user');
             const storedToken = localStorage.getItem('token');
-            if (storedUser) {
-                setUser(JSON.parse(storedUser));
-            }
-            if (storedToken) {
-                setToken(storedToken);
+            
+            if (storedUser && storedToken) {
+                // --- PERBAIKAN 1: Gabungkan user dan token saat memuat dari localStorage ---
+                // Ini adalah perbaikan paling krusial.
+                // Kita pastikan object 'user' di state SELALU memiliki properti 'token'.
+                const userObject = JSON.parse(storedUser);
+                userObject.token = storedToken;
+                setUser(userObject);
             }
         } catch (error) {
             console.error("Gagal mem-parsing data dari localStorage", error);
@@ -25,14 +29,30 @@ export const AuthProvider = ({ children }) => {
     }, []);
 
     const login = (userData) => {
-        // Ensure userData has role and token
-        if (!userData || !userData.role || !userData.token) {
-            console.error("Mencoba login tanpa data pengguna, role, atau token.");
+        if (!userData || !userData.token) {
+            console.error("Mencoba login tanpa data pengguna atau token.");
             return;
         }
-        localStorage.setItem('user', JSON.stringify({ _id: userData._id, username: userData.username, role: userData.role }));
+
+        // --- PERBAIKAN 2: Simpan data user yang lebih lengkap ---
+        // Kita simpan semua data yang relevan agar konsisten.
+        const userToStore = {
+            _id: userData._id,
+            adminName: userData.adminName,
+            adminEmail: userData.adminEmail,
+            role: userData.role
+        };
+        
+        localStorage.setItem('user', JSON.stringify(userToStore));
         localStorage.setItem('token', userData.token);
-        setUser({ _id: userData._id, username: userData.username, role: userData.role });
+
+        // --- PERBAIKAN 3: Pastikan object 'user' di state juga memiliki token ---
+        const userInState = {
+            ...userToStore,
+            token: userData.token
+        };
+
+        setUser(userInState);
         setToken(userData.token);
     };
 
@@ -43,6 +63,7 @@ export const AuthProvider = ({ children }) => {
         setToken(null);
     };
 
+    // Kita tetap menyediakan 'token' secara terpisah untuk fleksibilitas
     return (
         <AuthContext.Provider value={{ user, token, login, logout }}>
             {children}

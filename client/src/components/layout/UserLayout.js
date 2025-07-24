@@ -15,8 +15,6 @@ const UserLayout = () => {
     useEffect(() => {
         const fetchStats = async () => {
             try {
-                // --- PERBAIKAN: Hapus semua kondisi ---
-                // Sekarang kita selalu mengambil data statistik karena endpoint-nya sudah publik.
                 const response = await axios.get('http://localhost:5000/api/visitor-logs/stats');
                 setTotalUniqueVisitors(response.data.totalUniqueVisitors || 0);
             } catch (error) {
@@ -26,7 +24,6 @@ const UserLayout = () => {
         };
         
         fetchStats();
-    // Hapus dependency agar hanya berjalan sekali saat komponen dimuat
     }, []);
 
     return (
@@ -37,7 +34,9 @@ const UserLayout = () => {
                 }
             `}</style>
             <MobileMenu isOpen={isMenuOpen} onClose={toggleMenu} />
-            <div className="bg-[#FFFBEB] flex flex-col h-screen overflow-hidden">
+            {/* --- PERBAIKAN DI SINI: Hapus 'overflow-hidden' --- */}
+            {/* Properti ini yang menyebabkan 'position: sticky' tidak berfungsi */}
+            <div className="bg-[#FFFBEB] flex flex-col h-screen">
                 <header className="sticky top-0 z-20 bg-white/80 backdrop-blur-sm shadow-sm">
                     <Navbar
                         onMenuToggle={toggleMenu}

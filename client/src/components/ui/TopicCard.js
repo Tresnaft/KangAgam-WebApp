@@ -25,21 +25,24 @@ const TopicCard = ({ title, imageUrl, onClick, visitCount }) => {
                     className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110" 
                 />
             </div>
-            {/* --- PERUBAHAN LAYOUT DIMULAI DI SINI --- */}
+            {/* --- PERBAIKAN DI SINI --- */}
             <div className="p-3 text-left flex-grow flex flex-col justify-between">
-                {/* Judul sekarang rata kiri */}
                 <h3 className="text-gray-800 text-sm sm:text-base font-bold tracking-wider leading-tight">{title}</h3>
                 
-                {/* Tampilkan jumlah kunjungan jika ada */}
-                {visitCount > 0 && (
-                    // Rata kiri dengan margin atas
-                    <div className="flex items-center gap-1.5 mt-2 text-xs text-gray-500">
-                        <EyeIcon />
-                        <span>{visitCount.toLocaleString('id-ID')}</span>
-                    </div>
-                )}
+                {/* Selalu render container ini untuk menjaga tinggi yang konsisten */}
+                <div className="flex items-center gap-1.5 mt-2 text-xs text-gray-500">
+                    {/* Tampilkan ikon dan angka hanya jika visitCount ada */}
+                    {typeof visitCount === 'number' && visitCount > 0 ? (
+                        <>
+                            <EyeIcon />
+                            <span>{visitCount.toLocaleString('id-ID')}</span>
+                        </>
+                    ) : (
+                        // Gunakan non-breaking space sebagai placeholder untuk menjaga ruang
+                        <span>&nbsp;</span>
+                    )}
+                </div>
             </div>
-            {/* --- PERUBAHAN LAYOUT SELESAI --- */}
         </button>
     );
 };

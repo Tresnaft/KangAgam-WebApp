@@ -13,7 +13,6 @@ const AdminLoginPage = () => {
     const [isSubmitting, setIsSubmitting] = useState(false);
 
     useEffect(() => {
-        // Logika ini sudah benar, akan bekerja setelah login berhasil
         if (user?.role?.toLowerCase() === 'admin' || user?.role?.toLowerCase() === 'superadmin') {
             navigate('/admin/dashboard', { replace: true });
         }
@@ -31,16 +30,15 @@ const AdminLoginPage = () => {
         try {
             const response = await adminService.login(formData);
             
-            // --- PERBAIKAN DI SINI ---
-            // Memeriksa apakah peran adalah 'admin' ATAU 'superadmin'
-            const userRole = response?.role?.toLowerCase();
-            if (userRole === 'admin' || userRole === 'superadmin') {
-                login(response);
-                // Navigasi akan ditangani oleh useEffect di atas
-            } else {
-                setError('Akses ditolak. Anda tidak memiliki peran sebagai admin.');
-            }
+            // --- PERBAIKAN UTAMA DI SINI ---
+            // 'response' sekarang adalah data dari backend, termasuk token.
+            // Kita langsung teruskan seluruh objek 'response' ini ke fungsi login di AuthContext.
+            login(response); 
+            
+            // Navigasi akan ditangani oleh useEffect di atas setelah state user diperbarui.
+
         } catch (err) {
+            // Berkat perbaikan di adminService, kita sekarang bisa mendapatkan pesan error asli dari backend.
             setError(err.response?.data?.message || 'Gagal login. Periksa kredensial Anda.');
         } finally {
             setIsSubmitting(false);

@@ -5,7 +5,6 @@ const AuthContext = createContext();
 export const AuthProvider = ({ children }) => {
     const [user, setUser] = useState(null);
     const [token, setToken] = useState(() => localStorage.getItem('token'));
-    // --- PERBAIKAN 1: Tambahkan state untuk status loading autentikasi ---
     const [isAuthLoading, setIsAuthLoading] = useState(true);
 
     useEffect(() => {
@@ -13,44 +12,61 @@ export const AuthProvider = ({ children }) => {
             const storedUser = localStorage.getItem('user');
             const storedToken = localStorage.getItem('token');
             
-            if (storedUser && storedToken) {
+            if (storedUser) {
                 const userObject = JSON.parse(storedUser);
-                userObject.token = storedToken;
+                if (storedToken) {
+                    userObject.token = storedToken;
+                }
                 setUser(userObject);
             }
         } catch (error) {
             console.error("Gagal mem-parsing data dari localStorage", error);
-            localStorage.removeItem('user');
-            localStorage.removeItem('token');
+            localStorage.clear();
         } finally {
-            // --- PERBAIKAN 2: Set loading menjadi false setelah pengecekan selesai ---
             setIsAuthLoading(false);
         }
     }, []);
 
     const login = (userData) => {
-        if (!userData || !userData.token) {
-            console.error("Mencoba login tanpa data pengguna atau token.");
+        // --- PERBAIKAN UTAMA DI SINI ---
+        // Validasi dasar: pastikan userData ada dan memiliki role.
+        if (!userData || !userData.role) {
+            console.error("Mencoba login dengan data yang tidak valid.");
             return;
         }
 
+        const role = userData.role.toLowerCase();
+        const isLearner = role === 'user';
+        const isAdmin = role === 'admin' || role === 'superadmin';
+
+        // Jika seorang admin, MEREKA WAJIB PUNYA TOKEN.
+        if (isAdmin && !userData.token) {
+            console.error("Admin mencoba login tanpa token.");
+            return;
+        }
+
+        // Siapkan objek user yang akan disimpan, hanya berisi data yang relevan.
         const userToStore = {
             _id: userData._id,
-            adminName: userData.adminName,
-            adminEmail: userData.adminEmail,
-            role: userData.role
+            role: userData.role,
+            ...(isLearner && { learnerName: userData.learnerName }),
+            ...(isAdmin && { adminName: userData.adminName, adminEmail: userData.adminEmail }),
         };
-        
+
         localStorage.setItem('user', JSON.stringify(userToStore));
-        localStorage.setItem('token', userData.token);
-
-        const userInState = {
-            ...userToStore,
-            token: userData.token
-        };
-
-        setUser(userInState);
-        setToken(userData.token);
+        
+        // Atur state dan localStorage untuk token secara terpisah
+        if (isAdmin) {
+            localStorage.setItem('token', userData.token);
+            setToken(userData.token);
+            // Gabungkan user dan token di dalam state untuk konsistensi
+            setUser({ ...userToStore, token: userData.token });
+        } else {
+            // Jika ini learner, pastikan tidak ada token lama yang tersisa
+            localStorage.removeItem('token');
+            setToken(null);
+            setUser(userToStore);
+        }
     };
 
     const logout = () => {
@@ -60,7 +76,6 @@ export const AuthProvider = ({ children }) => {
         setToken(null);
     };
 
-    // --- PERBAIKAN 3: Kirim isAuthLoading melalui provider ---
     return (
         <AuthContext.Provider value={{ user, token, isAuthLoading, login, logout }}>
             {children}

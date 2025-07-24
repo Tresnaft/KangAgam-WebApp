@@ -8,31 +8,29 @@ import { useAuth } from '../../context/AuthContext';
 const UserLayout = () => {
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const [totalUniqueVisitors, setTotalUniqueVisitors] = useState(0);
-    const { token } = useAuth();
+    const { user, token } = useAuth(); 
 
     const toggleMenu = () => setIsMenuOpen(!isMenuOpen);
 
     useEffect(() => {
         const fetchStats = async () => {
             try {
-                if (!token) {
-                    throw new Error('Token is not available.');
-                }
-                const response = await axios.get('http://localhost:5000/api/visitor-logs/stats', {
-                    headers: { Authorization: `Bearer ${token}` },
-                });
+                // --- PERBAIKAN: Hapus semua kondisi ---
+                // Sekarang kita selalu mengambil data statistik karena endpoint-nya sudah publik.
+                const response = await axios.get('http://localhost:5000/api/visitor-logs/stats');
                 setTotalUniqueVisitors(response.data.totalUniqueVisitors || 0);
             } catch (error) {
                 console.error('Failed to fetch visitor stats:', error);
                 setTotalUniqueVisitors(0);
             }
         };
+        
         fetchStats();
-    }, [token]);
+    // Hapus dependency agar hanya berjalan sekali saat komponen dimuat
+    }, []);
 
     return (
         <>
-            {/* --- PERBAIKAN 1: Tambahkan style untuk scrollbar-gutter --- */}
             <style>{`
                 .stable-scrollbar {
                     scrollbar-gutter: stable;
@@ -47,7 +45,6 @@ const UserLayout = () => {
                         totalUniqueVisitors={totalUniqueVisitors}
                     />
                 </header>
-                {/* --- PERBAIKAN 2: Gunakan overflow-y-auto dan class baru --- */}
                 <main className="flex-grow overflow-y-auto stable-scrollbar">
                     <Outlet />
                 </main>

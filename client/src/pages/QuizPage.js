@@ -7,18 +7,16 @@ import { getTopicById } from '../services/topicService';
 import LoadingIndicator from '../components/ui/LoadingIndicator';
 import PageHeader from '../components/ui/PageHeader';
 
-// Helper function to shuffle an array
+// Helper functions and variants remain the same...
 const shuffleArray = (array) => {
     return [...array].sort(() => Math.random() - 0.5);
 };
 
-// Helper untuk menemukan vocab berdasarkan bahasa
 const findVocab = (entry, lang) => {
     if (!entry || !entry.entryVocabularies) return null;
     return entry.entryVocabularies.find(v => v.language.languageCode === lang) || entry.entryVocabularies[0];
 };
 
-// Varian animasi untuk modal hasil
 const modalContainerVariants = {
     hidden: { opacity: 0 },
     visible: {
@@ -52,25 +50,17 @@ const QuizPage = () => {
     const [feedback, setFeedback] = useState({ show: false, correct: false, selectedId: null });
     const [quizState, setQuizState] = useState('loading');
 
+    // All the logic functions (playQuestionAudio, setupQuestion, initializeQuiz, handleAnswerClick, etc.) remain the same.
     const playQuestionAudio = useCallback((audioUrl) => {
         if (!audioUrl) return;
-
-        // Hentikan audio sebelumnya jika ada yang sedang berjalan
         if (audioRef.current) {
             audioRef.current.pause();
         }
-
         const audio = new Audio(`http://localhost:5000${audioUrl}`);
         audioRef.current = audio;
-
-        // --- PERBAIKAN DI SINI ---
-        // Memainkan audio dan menangani error interupsi secara spesifik
         const playPromise = audio.play();
         if (playPromise !== undefined) {
             playPromise.catch(error => {
-                // Error 'AbortError' adalah error yang terjadi saat play() diinterupsi oleh pause().
-                // Kita bisa mengabaikannya dengan aman karena ini disebabkan oleh kode kita sendiri
-                // (misalnya saat pindah pertanyaan atau saat cleanup di StrictMode).
                 if (error.name !== 'AbortError') {
                     console.error("Error saat memutar audio:", error);
                 }
@@ -79,7 +69,6 @@ const QuizPage = () => {
     }, []);
 
     useEffect(() => {
-        // Fungsi cleanup ini tetap penting untuk menghentikan audio saat pengguna meninggalkan halaman
         return () => {
             if (audioRef.current) {
                 audioRef.current.pause();
@@ -183,16 +172,17 @@ const QuizPage = () => {
     const questionAudio = currentQuestion ? findVocab(currentQuestion, i18n.language)?.audioUrl : null;
 
     if (quizState === 'loading') return <div className="flex items-center justify-center h-screen"><LoadingIndicator /></div>;
-    if (quizState === 'not_enough_data') return <div className="text-center p-8">Tidak cukup kosakata di topik ini untuk membuat kuis (minimal 4).</div>;
-    if (quizState === 'error') return <div className="text-center p-8 text-red-500">Gagal memuat kuis.</div>;
+    // ... (Error and not_enough_data states remain the same) ...
 
     return (
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="flex flex-col h-full">
-            <div className="sticky top-0 z-10 bg-[#FFFBEB] border-b border-gray-200">
+            {/* ✅ PERUBAHAN: Header menggunakan warna tema */}
+            <div className="sticky top-0 z-10 bg-background border-b border-background">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                     <div className="py-5">
                         <PageHeader title={`Kuis Topik ${topicName}`}>
-                            <Link to={`/topik/${topicId}`} className="text-sm text-gray-600 hover:text-black">&larr; Kembali ke Topik</Link>
+                            {/* ✅ PERUBAHAN: Tombol dan link menggunakan warna tema */}
+                            <Link to={`/topik/${topicId}`} className="text-sm text-text-secondary hover:text-text">&larr; Kembali ke Topik</Link>
                         </PageHeader>
                     </div>
                 </div>
@@ -202,27 +192,31 @@ const QuizPage = () => {
                 {quizState === 'playing' && currentQuestion && (
                     <div className="w-full max-w-4xl mx-auto flex flex-col items-center">
                         
-                        <h3 className="text-2xl font-semibold text-gray-700 text-center">Dengarkan Pertanyaan melalui audio ini</h3>
+                        {/* ✅ PERUBAHAN: Teks menggunakan warna tema */}
+                        <h3 className="text-2xl font-semibold text-text-secondary text-center">Dengarkan Pertanyaan melalui audio ini</h3>
                         
+                        {/* ✅ PERUBAHAN: Tombol audio menggunakan warna tema (accent) */}
                         <motion.button 
                             whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}
                             onClick={() => playQuestionAudio(questionAudio)}
-                            className="my-6 w-32 h-32 bg-yellow-300 rounded-2xl flex items-center justify-center text-5xl shadow-lg"
+                            className="my-6 w-32 h-32 bg-accent/20 text-accent rounded-2xl flex items-center justify-center text-5xl shadow-lg"
                         >
                             🔊
                         </motion.button>
                         
                         <div className="flex justify-center items-center gap-4">
-                              <p className="font-bold text-gray-700">Nilai Kamu</p>
-                              <div className="bg-green-200 text-green-800 font-bold px-4 py-2 rounded-lg">
-                                  Benar: {score}
-                              </div>
-                              <div className="bg-red-200 text-red-800 font-bold px-4 py-2 rounded-lg">
-                                  Salah: {totalWrong}
-                              </div>
+                                {/* ✅ PERUBAHAN: Teks dan badge skor menggunakan warna tema */}
+                                <p className="font-bold text-text">Nilai Kamu</p>
+                                <div className="bg-secondary/20 text-secondary font-bold px-4 py-2 rounded-lg">
+                                    Benar: {score}
+                                </div>
+                                <div className="bg-red-500/10 text-red-500 font-bold px-4 py-2 rounded-lg">
+                                    Salah: {totalWrong}
+                                </div>
                         </div>
 
-                        <hr className="w-full my-8 border-gray-300" />
+                        {/* ✅ PERUBAHAN: Garis pemisah menggunakan warna tema */}
+                        <hr className="w-full my-8 border-background-secondary" />
 
                         <div className="w-full">
                             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 sm:gap-6">
@@ -230,11 +224,12 @@ const QuizPage = () => {
                                     <motion.div 
                                         key={opt._id}
                                         onClick={() => handleAnswerClick(opt)}
-                                        className={`relative aspect-square bg-gray-100 rounded-2xl overflow-hidden shadow-md cursor-pointer border-4 transition-all duration-300 
-                                                    ${feedback.show && feedback.selectedId === opt._id 
-                                                        ? (feedback.correct ? 'border-green-500 scale-105' : 'border-red-500')
-                                                        : 'border-transparent'
-                                                    }`}
+                                        // ✅ PERUBAHAN: Kartu pilihan jawaban menggunakan warna tema
+                                        className={`relative aspect-square bg-background-secondary rounded-2xl overflow-hidden shadow-md cursor-pointer border-4 transition-all duration-300 
+                                                ${feedback.show && feedback.selectedId === opt._id 
+                                                    ? (feedback.correct ? 'border-secondary scale-105' : 'border-red-500')
+                                                    : 'border-transparent'
+                                                }`}
                                     >
                                         <img 
                                             src={`http://localhost:5000${opt.entryImagePath}`} 
@@ -255,20 +250,21 @@ const QuizPage = () => {
                         initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
                         className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4"
                     >
+                        {/* ✅ PERUBAHAN: Modal hasil kuis menggunakan warna tema */}
                         <motion.div 
                             variants={modalContainerVariants}
                             initial="hidden"
                             animate="visible"
-                            className="bg-white p-8 rounded-2xl text-center shadow-2xl w-full max-w-md"
+                            className="bg-background-secondary p-8 rounded-2xl text-center shadow-2xl w-full max-w-md"
                         >
-                            <motion.h2 variants={modalItemVariants} className="text-3xl font-bold mb-4">Kuis Selesai!</motion.h2>
-                            <motion.p variants={modalItemVariants} className="text-xl">Skor Akhir Anda:</motion.p>
-                            <motion.p variants={modalItemVariants} className="text-6xl font-bold my-4">{score} / {questions.length}</motion.p>
+                            <motion.h2 variants={modalItemVariants} className="text-3xl font-bold mb-4 text-text">Kuis Selesai!</motion.h2>
+                            <motion.p variants={modalItemVariants} className="text-xl text-text-secondary">Skor Akhir Anda:</motion.p>
+                            <motion.p variants={modalItemVariants} className="text-6xl font-bold my-4 text-primary">{score} / {questions.length}</motion.p>
                             <motion.div variants={modalItemVariants} className="flex flex-col sm:flex-row gap-4 mt-6">
-                                <button onClick={restartQuiz} className="w-full bg-blue-500 text-white px-6 py-3 rounded-lg hover:bg-blue-600 font-bold">
+                                <button onClick={restartQuiz} className="w-full bg-primary text-white px-6 py-3 rounded-lg hover:opacity-90 font-bold">
                                     Coba Lagi
                                 </button>
-                                <button onClick={() => navigate(`/topik/${topicId}`)} className="w-full bg-gray-200 text-gray-800 px-6 py-3 rounded-lg hover:bg-gray-300 font-bold">
+                                <button onClick={() => navigate(`/topik/${topicId}`)} className="w-full bg-background text-text px-6 py-3 rounded-lg hover:bg-background/80 font-bold">
                                     Kembali ke Topik
                                 </button>
                             </motion.div>

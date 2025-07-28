@@ -12,12 +12,14 @@ const TopicCard = ({ title, imageUrl, onClick, visitCount }) => {
     return (
         <button 
             onClick={onClick}
-            className="group w-full bg-white rounded-2xl shadow-md overflow-hidden 
+            // ✅ Mengubah bg-white menjadi bg-background-secondary agar mengikuti tema
+            className="group w-full bg-background-secondary rounded-2xl shadow-md overflow-hidden 
                        transform hover:-translate-y-1 transition-all 
                        duration-300 ease-in-out focus:outline-none 
-                       focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 flex flex-col"
+                       focus:ring-2 focus:ring-offset-2 focus:ring-primary flex flex-col"
         >
-            <div className="w-full h-24 sm:h-28 bg-gray-200">
+            {/* ✅ Mengubah bg-gray-200 menjadi bg-background */}
+            <div className="w-full h-24 sm:h-28 bg-background">
                 <img 
                     src={imageUrl} 
                     alt={title} 
@@ -25,20 +27,18 @@ const TopicCard = ({ title, imageUrl, onClick, visitCount }) => {
                     className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110" 
                 />
             </div>
-            {/* --- PERBAIKAN DI SINI --- */}
             <div className="p-3 text-left flex-grow flex flex-col justify-between">
-                <h3 className="text-gray-800 text-sm sm:text-base font-bold tracking-wider leading-tight">{title}</h3>
+                {/* ✅ Mengubah text-gray-800 menjadi text-text */}
+                <h3 className="text-text text-sm sm:text-base font-bold tracking-wider leading-tight">{title}</h3>
                 
-                {/* Selalu render container ini untuk menjaga tinggi yang konsisten */}
-                <div className="flex items-center gap-1.5 mt-2 text-xs text-gray-500">
-                    {/* Tampilkan ikon dan angka hanya jika visitCount ada */}
+                {/* ✅ Mengubah text-gray-500 menjadi text-text-secondary */}
+                <div className="flex items-center gap-1.5 mt-2 text-xs text-text-secondary">
                     {typeof visitCount === 'number' && visitCount > 0 ? (
                         <>
                             <EyeIcon />
                             <span>{visitCount.toLocaleString('id-ID')}</span>
                         </>
                     ) : (
-                        // Gunakan non-breaking space sebagai placeholder untuk menjaga ruang
                         <span>&nbsp;</span>
                     )}
                 </div>

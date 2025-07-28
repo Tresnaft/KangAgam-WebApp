@@ -117,7 +117,7 @@ const HomePage = () => {
             transition={pageTransition}
             className="flex flex-col min-h-full"
         >
-            <div className="sticky top-0 z-10 bg-[#FFFBEB] border-b border-gray-200">
+            <div className="sticky top-0 z-10 bg-background border-b border-gray-200">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                     <div className="py-5">
                         <PageHeader title={t('welcomeMessage')} />

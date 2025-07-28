@@ -36,7 +36,7 @@ const UserLayout = () => {
             <MobileMenu isOpen={isMenuOpen} onClose={toggleMenu} />
             {/* --- PERBAIKAN DI SINI: Hapus 'overflow-hidden' --- */}
             {/* Properti ini yang menyebabkan 'position: sticky' tidak berfungsi */}
-            <div className="bg-[#FFFBEB] flex flex-col h-screen">
+            <div className="bg-background flex flex-col h-screen">
                 <header className="sticky top-0 z-20 bg-white/80 backdrop-blur-sm shadow-sm">
                     <Navbar
                         onMenuToggle={toggleMenu}

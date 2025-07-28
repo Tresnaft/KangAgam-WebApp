@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
 
-// Komponen Kartu Kosakata dengan efek saat audio berjalan dan saat aktif
 const KosakataCard = ({ content, imageUrl, audioUrl, onCardClick, isActive }) => {
     const [isWiggling, setIsWiggling] = useState(false);
-    const [isPlaying, setIsPlaying] = useState(false); // State untuk melacak status audio
+    const [isPlaying, setIsPlaying] = useState(false);
 
     const handleClick = () => {
+        // ... (Logika klik tetap sama)
         if (isPlaying || !audioUrl || audioUrl === '#') return;
 
         if (onCardClick) {
@@ -34,12 +34,12 @@ const KosakataCard = ({ content, imageUrl, audioUrl, onCardClick, isActive }) =>
         }, 500);
     };
 
-    // FIX: Logika kelas CSS yang lebih canggih untuk menangani 3 state: normal, aktif, dan sedang diputar
+    // ✅ Mengubah ring-blue-500 menjadi ring-primary dan ring-yellow-400 menjadi ring-accent
     const highlightClasses = isPlaying 
-        ? 'ring-4 ring-offset-2 ring-yellow-400 shadow-lg' // Efek glow saat audio berjalan (paling prioritas)
+        ? 'ring-4 ring-offset-2 ring-accent shadow-lg' 
         : isActive 
-        ? 'ring-2 ring-blue-500' // Efek sorot saat kartu aktif
-        : 'shadow-md'; // State normal
+        ? 'ring-2 ring-primary'
+        : 'shadow-md';
 
     return (
         <div 
@@ -47,12 +47,14 @@ const KosakataCard = ({ content, imageUrl, audioUrl, onCardClick, isActive }) =>
             role="button"
             tabIndex={0}
             onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && handleClick()}
-            className={`group w-full bg-white rounded-2xl overflow-hidden cursor-pointer
-                        transform transition-all duration-300 hover:scale-105 active:scale-95
-                        ${isWiggling ? 'wiggle' : ''}
-                        ${highlightClasses}`} // Terapkan kelas dinamis di sini
+            // ✅ Mengubah bg-white menjadi bg-background-secondary
+            className={`group w-full bg-background-secondary rounded-2xl overflow-hidden cursor-pointer
+                      transform transition-all duration-300 hover:scale-105 active:scale-95
+                      ${isWiggling ? 'wiggle' : ''}
+                      ${highlightClasses}`}
         >
-            <div className="w-full h-20 sm:h-24 bg-gray-100">
+            {/* ✅ Mengubah bg-gray-100 menjadi bg-background */}
+            <div className="w-full h-20 sm:h-24 bg-background">
                 <img 
                     src={imageUrl} 
                     alt={content} 
@@ -60,8 +62,9 @@ const KosakataCard = ({ content, imageUrl, audioUrl, onCardClick, isActive }) =>
                     className="w-full h-full object-contain p-2 transition-transform duration-300 group-hover:scale-110" 
                 />
             </div>
-            <div className="p-3 text-center bg-blue-100">
-                <p className="text-blue-800 font-bold text-lg sm:text-xl">{content}</p>
+            {/* ✅ Mengubah bg-blue-100 dan text-blue-800 menjadi warna tema */}
+            <div className="p-3 text-center bg-primary/10">
+                <p className="text-primary font-bold text-lg sm:text-xl">{content}</p>
             </div>
         </div>
     );

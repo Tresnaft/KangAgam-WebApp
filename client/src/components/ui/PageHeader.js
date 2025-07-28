@@ -1,6 +1,5 @@
 import React from 'react';
 
-// Ikon mata untuk jumlah kunjungan
 const EyeIcon = () => (
     <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
         <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
@@ -8,20 +7,17 @@ const EyeIcon = () => (
     </svg>
 );
 
-
-// Komponen sekarang menerima prop 'visitCount'
 const PageHeader = ({ title, children, visitCount }) => {
     return (
-        // --- PERBAIKAN DI SINI ---
-        // Menghapus margin bawah (mb-6 md:mb-8) agar lebih fleksibel.
-        // Penataan jarak sekarang akan diatur oleh halaman yang menggunakannya.
         <div className="flex flex-col sm:flex-row justify-between items-center text-center sm:text-left">
             <div>
                 <div className="flex items-center gap-3 justify-center sm:justify-start">
-                    <h1 className="text-3xl sm:text-4xl font-extrabold text-gray-800 tracking-tight">{title}</h1>
+                    {/* ✅ PERUBAHAN: Teks judul menggunakan warna tema */}
+                    <h1 className="text-3xl sm:text-4xl font-extrabold text-text tracking-tight">{title}</h1>
                     
                     {typeof visitCount === 'number' && visitCount > 0 && (
-                        <div className="flex items-center gap-1.5 text-sm text-gray-500 bg-gray-200 px-3 py-1 rounded-full mt-1">
+                        // ✅ PERUBAHAN: Badge menggunakan warna tema
+                        <div className="flex items-center gap-1.5 text-sm text-text-secondary bg-background-secondary px-3 py-1 rounded-full mt-1">
                             <EyeIcon />
                             <span>{visitCount.toLocaleString('id-ID')}</span>
                         </div>

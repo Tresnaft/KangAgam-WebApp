@@ -8,30 +8,42 @@
     --color-primary: 59 130 246; /* blue-500 */
     --color-secondary: 16 185 129; /* emerald-500 */
     --color-accent: 234 179 8; /* yellow-500 */
-    --color-background: 218 228 238; /* #DAE4EE */
+    
+    /* ✅ PERUBAHAN DI SINI: Menggunakan abu-abu yang sangat terang (gray-100)
+       sebagai latar belakang agar kartu putih (white) tetap terlihat menonjol. */
+    --color-background: 243 244 246; /* gray-100 */
     --color-background-secondary: 255 255 255; /* white */
+    
     --color-text: 17 24 39; /* gray-900 */
     --color-text-secondary: 75 85 99; /* gray-500 */
   }
 
-  /* Tema Dark */
+  /* Tema Dark (Disempurnakan) */
   [data-theme='dark'] {
-    --color-primary: 96 165 250; /* blue-400 */
-    --color-secondary: 52 211 153; /* emerald-400 */
-    --color-accent: 252 211 77; /* amber-400 */
-    --color-background: 17 24 39; /* gray-900 */
-    --color-background-secondary: 31 41 55; /* gray-800 */
-    --color-text: 243 244 246; /* gray-100 */
-    --color-text-secondary: 156 163 175; /* gray-400 */
+      --color-primary: 96 165 250; /* blue-400 */
+      --color-secondary: 52 211 153; /* emerald-400 */
+      --color-accent: 252 211 77; /* amber-400 */
+      
+      /* ✅ PERUBAHAN: Latar belakang utama menjadi lebih gelap (slate-900) */
+      --color-background: 15 23 42; /* slate-900 */
+      /* ✅ PERUBAHAN: Latar belakang kartu tetap gray-800, menciptakan kontras yang lebih baik */
+      --color-background-secondary: 31 41 55; /* gray-800 */
+      
+      --color-text: 243 244 246; /* gray-100 */
+      --color-text-secondary: 156 163 175; /* gray-400 */
   }
   
-  /* Contoh Tema Baru: Sunset */
+  /* Tema Sunset */
   [data-theme='sunset'] {
     --color-primary: 249 115 22; /* orange-500 */
     --color-secondary: 132 204 22; /* lime-500 */
     --color-accent: 236 72 153; /* pink-500 */
-    --color-background: 254 242 232; /* orange-50 */
+    
+    /* ✅ PERUBAHAN DI SINI: Menggunakan warna oranye yang sedikit lebih gelap (orange-100)
+       sebagai latar belakang agar kartu putih (white) terlihat jelas di atasnya. */
+    --color-background: 255 237 213; /* orange-100 */
     --color-background-secondary: 255 255 255; /* white */
+    
     --color-text: 51 65 85; /* slate-700 */
     --color-text-secondary: 100 116 139; /* slate-500 */
   }

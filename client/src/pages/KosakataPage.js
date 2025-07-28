@@ -157,7 +157,7 @@ const KosakataPage = () => {
             transition={pageTransition}
             ref={pageTopRef}
         >
-            <div className="sticky top-0 z-10 bg-[#FFFBEB] pt-4 pb-4 border-b border-gray-200">
+            <div className="sticky top-0 z-10 bg-background pt-4 pb-4 border-b border-gray-200">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                     <PageHeader 
                         title={getTranslatedTopicName()}

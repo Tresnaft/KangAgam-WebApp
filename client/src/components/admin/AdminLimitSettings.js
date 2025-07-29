@@ -1,29 +1,7 @@
 import React, { useState } from 'react';
-import settingService from '../../services/settingService';
-import { useAuth } from '../../context/AuthContext';
 
-const AdminLimitSettings = ({ currentLimit, onSettingsUpdate }) => {
-    const { user } = useAuth();
+const AdminLimitSettings = ({ currentLimit }) => {
     const [limit, setLimit] = useState(currentLimit);
-    const [isSaving, setIsSaving] = useState(false);
-
-    const handleSave = async () => {
-        if (!user?.token) {
-            alert("Otentikasi gagal.");
-            return;
-        }
-        setIsSaving(true);
-        try {
-            const newSettings = { maxAdmins: parseInt(limit, 10) };
-            await settingService.updateSettings(newSettings, user.token);
-            alert('Batas admin berhasil diperbarui!');
-            onSettingsUpdate(newSettings.maxAdmins); // Beri tahu komponen induk tentang perubahan
-        } catch (error) {
-            alert(error.message || 'Gagal menyimpan pengaturan.');
-        } finally {
-            setIsSaving(false);
-        }
-    };
 
     return (
         <div className="bg-background-secondary p-4 rounded-lg border border-gray-200 dark:border-gray-700">
@@ -35,17 +13,18 @@ const AdminLimitSettings = ({ currentLimit, onSettingsUpdate }) => {
                     id="maxAdmins"
                     value={limit}
                     onChange={(e) => setLimit(e.target.value)}
-                    className="w-20 px-2 py-1 border border-gray-300 dark:border-gray-600 rounded-md bg-background text-text"
+                    className="w-20 px-2 py-1 border border-gray-300 dark:border-gray-600 rounded-md bg-background text-text disabled:opacity-50 disabled:cursor-not-allowed"
                     min="1"
+                    disabled // ✅ Dinonaktifkan
                 />
                 <button
-                    onClick={handleSave}
-                    disabled={isSaving}
+                    disabled // ✅ Dinonaktifkan
                     className="bg-primary text-white font-bold px-4 py-1.5 rounded-lg text-sm hover:opacity-90 disabled:opacity-50"
                 >
-                    {isSaving ? 'Menyimpan...' : 'Simpan'}
+                    Simpan
                 </button>
             </div>
+            <p className="text-xs text-text-secondary mt-2 italic">Fitur ini untuk sementara dinonaktifkan.</p>
         </div>
     );
 };

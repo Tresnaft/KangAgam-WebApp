@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react'; // 1. Import useRef
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { getDashboardData } from '../../services/dashboardService';
 import PageHeader from '../../components/ui/PageHeader';
@@ -45,15 +45,19 @@ const createGradient = (ctx, area, colorStart, colorEnd) => {
 
 const StatisticsPage = () => {
     const { user } = useAuth();
-    // 2. Buat referensi untuk setiap grafik
     const visitorChartRef = useRef(null);
     const topicChartRef = useRef(null);
+    const uniqueVisitorChartRef = useRef(null);
+    const cityChartRef = useRef(null);
 
     const [stats, setStats] = useState({
         totalVisitors: 0,
+        totalUniqueVisitors: 0,
         visitorDistribution: [],
+        uniqueVisitorDistribution: [],
         favoriteTopic: {},
         topicDistribution: [],
+        cityDistribution: [],
         mostfrequentcity: {}
     });
     const [filters, setFilters] = useState({
@@ -61,12 +65,14 @@ const StatisticsPage = () => {
         topicPeriod: 'monthly',
         cityPeriod: 'monthly',
     });
-    const [isLoading, setIsLoading] = useState(true);
+    // ✅ 1. Tambahkan state terpisah untuk loading awal dan loading saat filter
+    const [isInitialLoading, setIsInitialLoading] = useState(true);
+    const [isFetching, setIsFetching] = useState(false);
     const [error, setError] = useState(null);
 
     const fetchData = useCallback(async () => {
         if (!user?.token) return;
-        setIsLoading(true);
+        setIsFetching(true); // Tampilkan loading di dalam kartu
         try {
             const data = await getDashboardData(filters, user.token);
             setStats(data);
@@ -75,7 +81,8 @@ const StatisticsPage = () => {
             setError('Gagal memuat data statistik.');
             console.error(err);
         } finally {
-            setIsLoading(false);
+            setIsInitialLoading(false); // Sembunyikan loading halaman penuh
+            setIsFetching(false); // Sembunyikan loading di dalam kartu
         }
     }, [user, filters]);
 
@@ -88,6 +95,7 @@ const StatisticsPage = () => {
         setFilters(prev => ({ ...prev, [name]: value }));
     };
 
+    // ... (Konfigurasi Chart Data tetap sama)
     const visitorChartData = {
         labels: stats.visitorDistribution?.map(d => d.label) || [],
         datasets: [{
@@ -132,50 +140,77 @@ const StatisticsPage = () => {
         }],
     };
 
+    const uniqueVisitorChartData = {
+        labels: stats.uniqueVisitorDistribution?.map(d => d.label) || [],
+        datasets: [{
+            label: 'Pengunjung Unik',
+            data: stats.uniqueVisitorDistribution?.map(d => d.count) || [],
+            backgroundColor: (context) => {
+                const { ctx, chartArea } = context.chart;
+                if (!chartArea) return null;
+                const secondaryColor = '16, 185, 129';
+                return createGradient(ctx, chartArea, `rgba(${secondaryColor}, 0.2)`, `rgba(${secondaryColor}, 0.8)`);
+            },
+            borderColor: 'rgb(16, 185, 129)',
+            borderWidth: 1,
+            borderRadius: 8,
+        }],
+    };
+
+    const cityChartData = {
+        labels: stats.cityDistribution?.map(d => d.label) || [],
+        datasets: [{
+            label: 'Jumlah Pengunjung',
+            data: stats.cityDistribution?.map(d => d.count) || [],
+            backgroundColor: (context) => {
+                const { ctx, chartArea } = context.chart;
+                if (!chartArea) return null;
+                const purpleColor = '168, 85, 247';
+                return createGradient(ctx, chartArea, `rgba(${purpleColor}, 0.2)`, `rgba(${purpleColor}, 0.8)`);
+            },
+            borderColor: 'rgb(168, 85, 247)',
+            borderWidth: 1,
+            borderRadius: 8,
+        }],
+    };
+
     const chartOptions = {
         responsive: true,
         maintainAspectRatio: false,
-        plugins: {
-            legend: { display: false },
-        },
+        plugins: { legend: { display: false } },
         scales: {
-            y: {
-                beginAtZero: true,
-                grid: { display: false },
-                ticks: {
-                    color: 'rgb(var(--color-text-secondary))',
-                    precision: 0, 
-                }
-            },
-            x: {
-                grid: { display: false },
-                ticks: { 
-                    color: 'rgb(var(--color-text-secondary))',
-                }
-            },
+            y: { beginAtZero: true, grid: { display: false }, ticks: { color: 'rgb(var(--color-text-secondary))', precision: 0 } },
+            x: { grid: { display: false }, ticks: { color: 'rgb(var(--color-text-secondary))' } },
         },
     };
 
-    if (isLoading) return <LoadingIndicator />;
+    const mostFrequentCityName = stats.cityDistribution && stats.cityDistribution.length > 0
+        ? stats.cityDistribution[0].label
+        : 'N/A';
+
+    // ✅ 2. Tampilkan loading halaman penuh hanya saat pertama kali
+    if (isInitialLoading) return <div className="flex items-center justify-center h-96"><LoadingIndicator /></div>;
     if (error) return <p className="text-center text-red-500">{error}</p>;
 
     return (
         <div>
             <PageHeader title="Statistik Pengguna">
-                {/* 3. Kirim referensi sebagai props */}
                 <ExportControls 
                     statsData={stats} 
                     filters={filters}
                     visitorChartRef={visitorChartRef}
                     topicChartRef={topicChartRef}
+                    uniqueVisitorChartRef={uniqueVisitorChartRef}
+                    cityChartRef={cityChartRef}
                 />
             </PageHeader>
 
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
+                {/* ✅ 3. Terapkan loading di dalam setiap kartu */}
                 {/* Card Total Kunjungan */}
                 <div className="bg-background-secondary p-6 rounded-xl shadow-md">
                     <div className="flex justify-between items-center mb-4">
-                        <h3 className="font-bold text-text">Total Kunjungan Pengguna</h3>
+                        <h3 className="font-bold text-text">Total Kunjungan</h3>
                         <select name="visitorsPeriod" value={filters.visitorsPeriod} onChange={handleFilterChange} className="bg-background text-text-secondary rounded-lg px-3 py-1 text-sm">
                             <option value="daily">Harian</option>
                             <option value="weekly">Mingguan</option>
@@ -183,11 +218,16 @@ const StatisticsPage = () => {
                             <option value="yearly">Tahunan</option>
                         </select>
                     </div>
-                    <p className="text-5xl font-bold text-text">{stats.totalVisitors.toLocaleString('id-ID')}</p>
-                    <div className="mt-4 h-60">
-                        {/* 4. Terapkan referensi ke komponen Bar */}
-                        <Bar ref={visitorChartRef} options={chartOptions} data={visitorChartData} />
-                    </div>
+                    {isFetching ? (
+                        <div className="h-72 flex items-center justify-center"><LoadingIndicator /></div>
+                    ) : (
+                        <>
+                            <p className="text-5xl font-bold text-text">{stats.totalVisitors.toLocaleString('id-ID')}</p>
+                            <div className="mt-4 h-60">
+                                <Bar ref={visitorChartRef} options={chartOptions} data={visitorChartData} />
+                            </div>
+                        </>
+                    )}
                 </div>
 
                 {/* Card Topik Favorit */}
@@ -201,17 +241,45 @@ const StatisticsPage = () => {
                             <option value="yearly">Tahunan</option>
                         </select>
                     </div>
-                    <p className="text-5xl font-bold text-text">{getTopicName(stats.favoriteTopic?.name)}</p>
-                     <div className="mt-4 h-60">
-                        {/* 4. Terapkan referensi ke komponen Bar */}
-                        <Bar ref={topicChartRef} options={chartOptions} data={topicChartData} />
+                    {isFetching ? (
+                        <div className="h-72 flex items-center justify-center"><LoadingIndicator /></div>
+                    ) : (
+                        <>
+                            <p className="text-3xl font-bold text-text">{getTopicName(stats.favoriteTopic?.name)}</p>
+                             <div className="mt-4 h-60">
+                                <Bar ref={topicChartRef} options={chartOptions} data={topicChartData} />
+                            </div>
+                        </>
+                    )}
+                </div>
+
+                {/* Card Pengunjung Unik */}
+                <div className="bg-background-secondary p-6 rounded-xl shadow-md">
+                    <div className="flex justify-between items-center mb-4">
+                        <h3 className="font-bold text-text">Pengunjung Unik</h3>
+                        <select name="visitorsPeriod" value={filters.visitorsPeriod} onChange={handleFilterChange} className="bg-background text-text-secondary rounded-lg px-3 py-1 text-sm">
+                            <option value="daily">Harian</option>
+                            <option value="weekly">Mingguan</option>
+                            <option value="monthly">Bulanan</option>
+                            <option value="yearly">Tahunan</option>
+                        </select>
                     </div>
+                    {isFetching ? (
+                        <div className="h-72 flex items-center justify-center"><LoadingIndicator /></div>
+                    ) : (
+                        <>
+                            <p className="text-5xl font-bold text-text">{stats.totalUniqueVisitors.toLocaleString('id-ID')}</p>
+                            <div className="mt-4 h-60">
+                                <Bar ref={uniqueVisitorChartRef} options={chartOptions} data={uniqueVisitorChartData} />
+                            </div>
+                        </>
+                    )}
                 </div>
 
                 {/* Card Asal Domisili */}
-                <div className="bg-background-secondary p-6 rounded-xl shadow-md lg:col-span-2">
+                <div className="bg-background-secondary p-6 rounded-xl shadow-md">
                     <div className="flex justify-between items-center mb-4">
-                        <h3 className="font-bold text-text">Asal Domisili Terbanyak</h3>
+                        <h3 className="font-bold text-text">Domisili Pengunjung Aktif</h3>
                         <select name="cityPeriod" value={filters.cityPeriod} onChange={handleFilterChange} className="bg-background text-text-secondary rounded-lg px-3 py-1 text-sm">
                             <option value="daily">Harian</option>
                             <option value="weekly">Mingguan</option>
@@ -219,8 +287,16 @@ const StatisticsPage = () => {
                             <option value="yearly">Tahunan</option>
                         </select>
                     </div>
-                    <p className="text-2xl font-semibold text-text-secondary capitalize">{stats.mostfrequentcity?.name || 'N/A'}</p>
-                    <p className="text-5xl font-bold text-text">{stats.mostfrequentcity?.count?.toLocaleString('id-ID') || 0}</p>
+                    {isFetching ? (
+                        <div className="h-72 flex items-center justify-center"><LoadingIndicator /></div>
+                    ) : (
+                        <>
+                            <p className="text-3xl font-bold text-text capitalize">{mostFrequentCityName}</p>
+                            <div className="mt-4 h-60">
+                                <Bar ref={cityChartRef} options={chartOptions} data={cityChartData} />
+                            </div>
+                        </>
+                    )}
                 </div>
             </div>
         </div>

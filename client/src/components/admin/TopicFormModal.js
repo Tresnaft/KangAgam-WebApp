@@ -11,7 +11,9 @@ const TopicFormModal = ({ isOpen, onClose, onSubmit, mode, initialData }) => {
     const [topicNames, setTopicNames] = useState({ id: '', su: '', en: '' });
     const [status, setStatus] = useState('Published');
     const [imageFile, setImageFile] = useState(null);
-    const [error, setError] = useState('');
+    // ✅ 1. Ganti state 'error' menjadi objek 'errors'
+    const [errors, setErrors] = useState({});
+    const [imagePreview, setImagePreview] = useState(null);
 
     useEffect(() => {
         if (isOpen) {
@@ -27,32 +29,58 @@ const TopicFormModal = ({ isOpen, onClose, onSubmit, mode, initialData }) => {
                 }
                 setTopicNames(names);
                 setStatus(initialData.status || 'Published');
+                if (initialData.topicImagePath) {
+                    setImagePreview(`http://localhost:5000${initialData.topicImagePath}`);
+                }
             } else {
                 setTopicNames({ id: '', su: '', en: '' });
                 setStatus('Published');
                 setImageFile(null);
+                setImagePreview(null);
             }
-            setError('');
+            // Reset errors saat modal dibuka
+            setErrors({});
         }
     }, [isOpen, mode, initialData]);
 
     const handleNameChange = (lang, value) => {
         setTopicNames(prev => ({ ...prev, [lang]: value }));
+        // Hapus error saat pengguna mulai mengetik
+        if (errors.topicNames) {
+            setErrors(prev => ({ ...prev, topicNames: null }));
+        }
+    };
+    
+    const handleImageChange = (e) => {
+        const file = e.target.files[0];
+        if (file) {
+            setImageFile(file);
+            setImagePreview(URL.createObjectURL(file));
+        }
+    };
+
+    // ✅ 2. Buat fungsi validasi
+    const validateForm = () => {
+        const newErrors = {};
+        if (!topicNames.id.trim()) {
+            newErrors.topicNames = 'Nama Topik (Indonesia) wajib diisi.';
+        }
+        if (mode === 'add' && !imageFile) {
+            newErrors.topicImage = 'Silakan pilih gambar untuk topik.';
+        }
+        return newErrors;
     };
 
     const handleSubmit = (e) => {
         e.preventDefault();
-        if (!topicNames.id) {
-            setError('Nama Topik dalam Bahasa Indonesia wajib diisi.');
-            return;
-        }
-        if (mode === 'add' && !imageFile) {
-            setError('Silakan pilih gambar untuk topik.');
+        const formErrors = validateForm();
+        if (Object.keys(formErrors).length > 0) {
+            setErrors(formErrors);
             return;
         }
         
+        setErrors({}); // Hapus error jika valid
         const formData = new FormData();
-        
         const topicNamesArray = Object.keys(topicNames)
             .filter(lang => topicNames[lang])
             .map(lang => ({ lang, value: topicNames[lang] }));
@@ -71,59 +99,62 @@ const TopicFormModal = ({ isOpen, onClose, onSubmit, mode, initialData }) => {
             {isOpen && (
                 <motion.div
                     initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-                    // --- PERBAIKAN 3: Naikkan z-index agar muncul di atas modal detail ---
                     className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4"
                     onClick={onClose}
                 >
                     <motion.div
                         initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }}
-                        className="bg-background-secondary rounded-2xl shadow-xl w-full max-w-md"
+                        className="bg-background-secondary rounded-2xl shadow-xl w-full max-w-md flex flex-col"
                         onClick={(e) => e.stopPropagation()}
                     >
                         <form onSubmit={handleSubmit}>
-                            <header className="flex items-center justify-between p-6 border-b border-background">
-                                <h2 className="text-xl font-bold text-text">
-                                    {mode === 'edit' ? 'Edit Topik' : 'Tambah Topik'}
-                                </h2>
+                            <header className="flex-shrink-0 flex items-center justify-between p-4 border-b border-background">
+                                <h2 className="text-xl font-bold text-text">{mode === 'edit' ? 'Edit Topik' : 'Tambah Topik'}</h2>
                                 <button type="button" onClick={onClose} className="p-1 rounded-full hover:bg-background"><CloseIcon /></button>
                             </header>
 
-                            <main className="p-6 space-y-4">
-                                {error && <p className="text-red-500 text-sm">{error}</p>}
-                                
+                            <main className="p-4 space-y-3">
                                 <div>
                                     <label htmlFor="name-id" className="block text-sm font-medium text-text-secondary mb-1">Nama Topik (Indonesia)</label>
+                                    {/* ✅ 3. Tambahkan border merah dan pesan error */}
                                     <input type="text" id="name-id" value={topicNames.id} onChange={(e) => handleNameChange('id', e.target.value)}
-                                        className="w-full px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg bg-background text-text" required />
+                                        className={`w-full px-4 py-2 border rounded-lg bg-background text-text ${errors.topicNames ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'}`} />
+                                    {errors.topicNames && <p className="text-red-500 text-xs mt-1">{errors.topicNames}</p>}
                                 </div>
                                 <div>
                                     <label htmlFor="name-su" className="block text-sm font-medium text-text-secondary mb-1">Nama Topik (Sunda)</label>
                                     <input type="text" id="name-su" value={topicNames.su} onChange={(e) => handleNameChange('su', e.target.value)}
-                                        className="w-full px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg bg-background text-text" />
+                                        className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-background text-text" />
                                 </div>
                                 <div>
                                     <label htmlFor="name-en" className="block text-sm font-medium text-text-secondary mb-1">Nama Topik (Inggris)</label>
                                     <input type="text" id="name-en" value={topicNames.en} onChange={(e) => handleNameChange('en', e.target.value)}
-                                        className="w-full px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg bg-background text-text" />
+                                        className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-background text-text" />
                                 </div>
                                 
                                 <div>
                                     <label htmlFor="topicImage" className="block text-sm font-medium text-text-secondary mb-1">Gambar Topik {mode === 'edit' && '(Opsional)'}</label>
-                                    <input type="file" id="topicImage" name="topicImage" accept="image/*" onChange={(e) => setImageFile(e.target.files[0])}
+                                    {imagePreview && (
+                                        <div className="mt-2 mb-3">
+                                            <img src={imagePreview} alt="Pratinjau Topik" className="w-24 h-24 object-cover rounded-lg" />
+                                        </div>
+                                    )}
+                                    <input type="file" id="topicImage" name="topicImage" accept="image/*" onChange={handleImageChange}
                                         className="w-full text-sm text-text-secondary file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-primary/10 file:text-primary hover:file:bg-primary/20"/>
+                                    {errors.topicImage && <p className="text-red-500 text-xs mt-1">{errors.topicImage}</p>}
                                 </div>
 
                                 <div>
                                     <label htmlFor="status" className="block text-sm font-medium text-text-secondary mb-1">Status</label>
                                     <select id="status" value={status} onChange={(e) => setStatus(e.target.value)}
-                                        className="w-full px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg bg-background text-text">
+                                        className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-background text-text">
                                         <option value="Published">Published</option>
                                         <option value="Draft">Draft</option>
                                     </select>
                                 </div>
                             </main>
 
-                            <footer className="p-6 bg-background rounded-b-2xl">
+                            <footer className="flex-shrink-0 p-4 bg-background rounded-b-2xl">
                                 <button type="submit" className="w-full bg-primary text-white font-bold py-3 px-4 rounded-lg hover:opacity-90">
                                     {mode === 'edit' ? 'Simpan Perubahan' : 'Tambah'}
                                 </button>

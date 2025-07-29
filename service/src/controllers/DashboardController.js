@@ -1,7 +1,7 @@
 import VisitorLog from '../models/VisitorLogModel.js';
 import Learner from '../models/LearnerModel.js';
 import Topic from '../models/TopicModel.js';
-import Admin from '../models/AdminModel.js'; // 1. Import model Admin
+import Admin from '../models/AdminModel.js';
 import mongoose from 'mongoose';
 
 const createDateFilter = (period) => {
@@ -14,7 +14,7 @@ const createDateFilter = (period) => {
             startDate = new Date(today);
             break;
         case 'weekly':
-            const dayOfWeek = today.getDay(); // 0=Minggu, 1=Senin
+            const dayOfWeek = today.getDay();
             startDate = new Date(today);
             startDate.setDate(today.getDate() - dayOfWeek);
             break;
@@ -42,19 +42,35 @@ export const getDashboardStats = async (req, res) => {
         const cityDateFilter = createDateFilter(cityPeriod);
         const topicDateFilter = createDateFilter(topicPeriod);
         
-        // 2. Tambahkan penghitungan total topik dan admin ke dalam Promise.all
         const [
             totalVisitors,
+            totalUniqueVisitorsResult,
             visitorDistribution,
+            // ✅ Menambahkan agregasi untuk distribusi pengunjung unik
+            uniqueVisitorDistribution,
             topicVisitDistribution,
-            mostFrequentcity,
-            totalTopics, // Tambahkan variabel ini
-            totalAdmins  // Tambahkan variabel ini
+            // ✅ Mengubah agregasi untuk mendapatkan 5 domisili teratas
+            cityDistribution,
+            totalTopics,
+            totalAdmins
         ] = await Promise.all([
             VisitorLog.countDocuments(visitorsDateFilter),
             VisitorLog.aggregate([
                 { $match: visitorsDateFilter },
+                { $group: { _id: "$learner" } },
+                { $count: "count" }
+            ]),
+            VisitorLog.aggregate([
+                { $match: visitorsDateFilter },
                 { $group: { _id: { $dateToString: { format: "%Y-%m-%d", date: "$timestamp" } }, count: { $sum: 1 } } },
+                { $sort: { "_id": 1 } },
+                { $project: { _id: 0, label: "$_id", count: "$count" } }
+            ]),
+            // Agregasi baru untuk distribusi pengunjung unik per hari
+            VisitorLog.aggregate([
+                { $match: visitorsDateFilter },
+                { $group: { _id: { date: { $dateToString: { format: "%Y-%m-%d", date: "$timestamp" } }, learner: "$learner" } } },
+                { $group: { _id: "$_id.date", count: { $sum: 1 } } },
                 { $sort: { "_id": 1 } },
                 { $project: { _id: 0, label: "$_id", count: "$count" } }
             ]),
@@ -66,29 +82,34 @@ export const getDashboardStats = async (req, res) => {
                 { $unwind: "$topicDetails" },
                 { $project: { _id: 0, topicId: "$_id", name: "$topicDetails.topicName", count: "$count" } }
             ]),
+            // Agregasi yang disempurnakan untuk 5 domisili teratas
             VisitorLog.aggregate([
                 { $match: cityDateFilter },
-                { $group: { _id: "$learner" } },
-                { $lookup: { from: "learners", localField: "_id", foreignField: "_id", as: "learnerDetails" } },
+                { $lookup: { from: "learners", localField: "learner", foreignField: "_id", as: "learnerDetails" } },
                 { $unwind: "$learnerDetails" },
-                { $group: { _id: { $toLower: "$learnerDetails.learnerCity" }, uniqueVisitorCount: { $sum: 1 } } },
-                { $sort: { uniqueVisitorCount: -1 } },
-                { $limit: 1 },
-                { $project: { _id: 0, name: "$_id", count: "$uniqueVisitorCount" } }
+                { $group: { _id: { learner: "$learner", city: "$learnerDetails.learnerCity" } } },
+                { $group: { _id: "$_id.city", count: { $sum: 1 } } },
+                { $sort: { count: -1 } },
+                { $limit: 5 },
+                { $project: { _id: 0, label: "$_id", count: "$count" } }
             ]),
-            Topic.countDocuments(), // Hitung semua dokumen di koleksi Topic
-            Admin.countDocuments()  // Hitung semua dokumen di koleksi Admin
+            Topic.countDocuments(),
+            Admin.countDocuments()
         ]);
+        
+        const totalUniqueVisitors = totalUniqueVisitorsResult[0]?.count || 0;
 
-        // 3. Sertakan totalTopics dan totalAdmins dalam respons JSON
         res.status(200).json({
             totalVisitors,
+            totalUniqueVisitors,
             visitorDistribution,
+            uniqueVisitorDistribution,
             favoriteTopic: topicVisitDistribution[0] || {},
             topicDistribution: topicVisitDistribution,
-            mostfrequentcity: mostFrequentcity[0] || {},
-            totalTopics, // Kirim data total topik
-            totalAdmins, // Kirim data total admin
+            cityDistribution,
+            mostfrequentcity: cityDistribution[0] || {},
+            totalTopics,
+            totalAdmins,
         });
 
     } catch (error) {

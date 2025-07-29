@@ -10,10 +10,9 @@ import LoadingIndicator from '../../components/ui/LoadingIndicator';
 
 const ITEMS_PER_PAGE = 8;
 
-// Komponen Ikon
-const SearchIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>;
+// Icon Components
+const SearchIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-text-secondary" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>;
 const PlusIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" /></svg>;
-const DotsVerticalIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" /></svg>;
 
 const ManageTopicsPage = () => {
     const { user } = useAuth();
@@ -96,98 +95,94 @@ const ManageTopicsPage = () => {
         }
     };
 
-    // Create empty rows to fill the table if there are fewer items than ITEMS_PER_PAGE
     const emptyRowsCount = Math.max(0, ITEMS_PER_PAGE - currentItems.length);
     const emptyRows = Array(emptyRowsCount).fill(null);
 
     return (
         <div>
             <div className="flex flex-col sm:flex-row justify-between sm:items-center mb-6 gap-4">
-                <h1 className="text-2xl sm:text-3xl font-bold text-gray-800">Daftar Topik</h1>
+                <h1 className="text-2xl sm:text-3xl font-bold text-text">Daftar Topik</h1>
                 <div className="flex items-center gap-2 w-full sm:w-auto">
                     <div className="relative flex-grow">
                         <span className="absolute inset-y-0 left-0 flex items-center pl-3"><SearchIcon /></span>
-                        <input type="text" placeholder="Cari..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="pl-10 pr-4 py-2 w-full border border-gray-300 rounded-lg text-sm"/>
+                        <input 
+                            type="text" 
+                            placeholder="Cari..." 
+                            value={searchTerm} 
+                            onChange={(e) => setSearchTerm(e.target.value)} 
+                            className="pl-10 pr-4 py-2 w-full border border-gray-300 dark:border-gray-600 rounded-lg text-sm bg-background-secondary text-text"
+                        />
                     </div>
-                    <button onClick={() => setFormModalState({ isOpen: true, mode: 'add', data: null })} className="bg-green-500 text-white font-bold px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-green-600 flex-shrink-0 text-sm">
+                    <button 
+                        onClick={() => setFormModalState({ isOpen: true, mode: 'add', data: null })} 
+                        className="bg-primary text-white font-bold px-4 py-2 rounded-lg flex items-center gap-2 hover:opacity-90 flex-shrink-0 text-sm"
+                    >
                         <PlusIcon />
                         <span>Tambah</span>
                     </button>
                 </div>
             </div>
 
-            {/* Fixed height container with flex layout */}
-            <div className="bg-white rounded-xl shadow-md overflow-hidden">
-                {/* Table container with exact height calculation */}
+            <div className="bg-background-secondary rounded-xl shadow-md overflow-hidden">
                 <div className="overflow-x-auto">
                     <table className="w-full text-left">
-                        <thead className="bg-gray-100">
+                        {/* ✅ PERBAIKAN: Mengganti warna header tabel */}
+                        <thead className="bg-slate-50 dark:bg-gray-700/50">
                             <tr style={{ height: '60px' }}>
-                                <th className="hidden sm:table-cell p-3 px-6 font-bold text-gray-600 w-[5%]">#</th>
-                                <th className="p-3 px-6 font-bold text-gray-600">Nama Topik</th>
-                                <th className="hidden sm:table-cell p-3 px-6 font-bold text-gray-600 w-[20%]">Total Kosakata</th>
-                                <th className="p-3 px-6 font-bold text-gray-600 text-right">Action</th>
+                                <th className="hidden sm:table-cell p-3 px-6 font-bold text-text-secondary w-[5%]">No.</th>
+                                <th className="p-3 px-6 font-bold text-text-secondary">Nama Topik</th>
+                                <th className="hidden sm:table-cell p-3 px-6 font-bold text-text-secondary w-[20%]">Total Kosakata</th>
+                                <th className="p-3 px-6 font-bold text-text-secondary text-right">Action</th>
                             </tr>
                         </thead>
-                                                    <tbody>
-                                {isLoading ? (
-                                    <tr style={{ height: `${ITEMS_PER_PAGE * 60}px` }}>
-                                        <td colSpan="4" className="text-center align-middle">
-                                            <LoadingIndicator />
-                                        </td>
-                                    </tr>
-                                ) : error ? (
-                                    <tr style={{ height: `${ITEMS_PER_PAGE * 60}px` }}>
-                                        <td colSpan="4" className="text-center align-middle text-red-500">{error}</td>
-                                    </tr>
-                                ) : (
-                                    <>
-                                        {/* Actual data rows */}
-                                        {currentItems.map((topic, index) => (
-                                            <tr key={topic._id} className="border-b border-gray-200 hover:bg-gray-50" style={{ height: '60px' }}>
-                                                <td className="hidden sm:table-cell p-3 px-6 text-gray-700">{indexOfFirstItem + index + 1}</td>
-                                                <td className="p-3 px-6 text-gray-800 font-semibold truncate">{topic.topicName || 'Tanpa Nama'}</td>
-                                                <td className="hidden sm:table-cell p-3 px-6 text-gray-700">{topic.topicEntries.length}</td>
-                                                <td className="p-3 px-6 text-right">
-                                                    <div className="hidden sm:flex justify-end items-center gap-2">
-                                                        <Link to={`/topik/${topic._id}`} target="_blank" rel="noopener noreferrer" className="bg-gray-100 text-gray-800 text-xs font-bold px-3 py-1.5 rounded-md hover:bg-gray-200">Pratinjau</Link>
-                                                        <Link to={`/admin/manage-topics/${topic._id}`} className="bg-blue-100 text-blue-800 text-xs font-bold px-3 py-1.5 rounded-md hover:bg-blue-200">Kosakata</Link>
-                                                        <button onClick={() => setFormModalState({ isOpen: true, mode: 'edit', data: topic })} className="bg-yellow-100 text-yellow-800 text-xs font-bold px-3 py-1.5 rounded-md hover:bg-yellow-200">Edit</button>
-                                                        <button onClick={() => setDeleteModalTopic(topic)} className="bg-red-100 text-red-800 text-xs font-bold px-3 py-1.5 rounded-md hover:bg-red-200">Delete</button>
-                                                    </div>
-                                                    <div className="sm:hidden">
-                                                        <button onClick={() => setDetailModalTopic(topic)} className="bg-gray-100 text-gray-800 text-xs font-bold px-3 py-1.5 rounded-md hover:bg-gray-200">
-                                                            Detail
-                                                        </button>
-                                                    </div>
-                                                </td>
-                                            </tr>
-                                        ))}
-                                        
-                                        {/* Empty rows to maintain consistent table height */}
-                                        {emptyRows.map((_, index) => (
-                                            <tr key={`empty-${index}`} className="border-b border-gray-200" style={{ height: '60px' }}>
-                                                <td className="hidden sm:table-cell p-3 px-6"></td>
-                                                <td className="p-3 px-6"></td>
-                                                <td className="hidden sm:table-cell p-3 px-6"></td>
-                                                <td className="p-3 px-6"></td>
-                                            </tr>
-                                        ))}
-                                        
-                                        {/* No data message when no items and not loading */}
-                                        {currentItems.length === 0 && (
-                                            <tr style={{ height: `${ITEMS_PER_PAGE * 60}px` }}>
-                                                <td colSpan="4" className="text-center align-middle text-gray-500">Tidak ada topik yang ditemukan.</td>
-                                            </tr>
-                                        )}
-                                    </>
-                                )}
-                            </tbody>
+                        <tbody>
+                            {isLoading ? (
+                                <tr style={{ height: `${ITEMS_PER_PAGE * 60}px` }}>
+                                    <td colSpan="4" className="text-center align-middle"><LoadingIndicator /></td>
+                                </tr>
+                            ) : error ? (
+                                <tr style={{ height: `${ITEMS_PER_PAGE * 60}px` }}>
+                                    <td colSpan="4" className="text-center align-middle text-red-500">{error}</td>
+                                </tr>
+                            ) : (
+                                <>
+                                    {currentItems.map((topic, index) => (
+                                        <tr key={topic._id} className="border-b border-background hover:bg-background/50" style={{ height: '60px' }}>
+                                            <td className="hidden sm:table-cell p-3 px-6 text-text-secondary">{indexOfFirstItem + index + 1}</td>
+                                            <td className="p-3 px-6 text-text font-semibold truncate">{topic.topicName || 'Tanpa Nama'}</td>
+                                            <td className="hidden sm:table-cell p-3 px-6 text-text-secondary">{topic.topicEntries.length}</td>
+                                            <td className="p-3 px-6 text-right">
+                                                <div className="hidden sm:flex justify-end items-center gap-2">
+                                                    <Link to={`/topik/${topic._id}`} target="_blank" rel="noopener noreferrer" className="bg-gray-500/10 text-text-secondary text-xs font-bold px-3 py-1.5 rounded-md hover:bg-gray-500/20">Pratinjau</Link>
+                                                    <Link to={`/admin/manage-topics/${topic._id}`} className="bg-primary/10 text-primary text-xs font-bold px-3 py-1.5 rounded-md hover:bg-primary/20">Kosakata</Link>
+                                                    <button onClick={() => setFormModalState({ isOpen: true, mode: 'edit', data: topic })} className="bg-yellow-500/10 text-yellow-600 text-xs font-bold px-3 py-1.5 rounded-md hover:bg-yellow-500/20">Edit</button>
+                                                    <button onClick={() => setDeleteModalTopic(topic)} className="bg-red-500/10 text-red-500 text-xs font-bold px-3 py-1.5 rounded-md hover:bg-red-500/20">Delete</button>
+                                                </div>
+                                                <div className="sm:hidden">
+                                                    <button onClick={() => setDetailModalTopic(topic)} className="bg-background text-text-secondary text-xs font-bold px-3 py-1.5 rounded-md hover:bg-background/80">
+                                                        Detail
+                                                    </button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                    {emptyRows.map((_, index) => (
+                                        <tr key={`empty-${index}`} className="border-b border-background" style={{ height: '60px' }}>
+                                            <td colSpan="4"></td>
+                                        </tr>
+                                    ))}
+                                    {currentItems.length === 0 && (
+                                        <tr style={{ height: `${ITEMS_PER_PAGE * 60}px` }}>
+                                            <td colSpan="4" className="text-center align-middle text-text-secondary">Tidak ada topik yang ditemukan.</td>
+                                        </tr>
+                                    )}
+                                </>
+                            )}
+                        </tbody>
                     </table>
                 </div>
                 
-                {/* Fixed pagination at bottom */}
-                <div className="p-4 border-t border-gray-200">
+                <div className="p-4 border-t border-background">
                     <Pagination currentPage={currentPage} totalPages={totalPages} onPageChange={handlePageChange} totalItems={filteredTopics.length} />
                 </div>
             </div>

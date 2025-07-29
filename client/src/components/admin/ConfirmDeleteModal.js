@@ -5,7 +5,6 @@ const ConfirmDeleteModal = ({ isOpen, onClose, onConfirm, title, message }) => {
     return (
         <AnimatePresence>
             {isOpen && (
-                // 2. Tambahkan 'backdrop-blur-sm' di sini juga
                 <motion.div
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
@@ -18,18 +17,20 @@ const ConfirmDeleteModal = ({ isOpen, onClose, onConfirm, title, message }) => {
                         animate={{ scale: 1, opacity: 1 }}
                         exit={{ scale: 0.9, opacity: 0 }}
                         transition={{ duration: 0.2 }}
-                        className="bg-white rounded-2xl shadow-xl w-full max-w-sm"
+                        // ✅ PERBAIKAN: Menggunakan warna tema untuk latar belakang modal
+                        className="bg-background-secondary rounded-2xl shadow-xl w-full max-w-sm"
                         onClick={(e) => e.stopPropagation()}
                     >
                         <main className="p-8 text-center">
-                            <h2 className="text-xl font-bold text-gray-800">{title}</h2>
-                            <p className="text-gray-600 mt-2">{message}</p>
+                            {/* ✅ PERBAIKAN: Menggunakan warna tema untuk teks */}
+                            <h2 className="text-xl font-bold text-text">{title}</h2>
+                            <p className="text-text-secondary mt-2">{message}</p>
                         </main>
-
-                        <footer className="p-4 grid grid-cols-2 gap-3 bg-gray-50 rounded-b-2xl">
+                        {/* ✅ PERBAIKAN: Menggunakan warna tema untuk footer dan tombol */}
+                        <footer className="p-4 grid grid-cols-2 gap-3 bg-background rounded-b-2xl">
                             <button
                                 onClick={onClose}
-                                className="bg-gray-200 text-gray-800 font-bold py-3 px-4 rounded-lg hover:bg-gray-300 transition-colors"
+                                className="bg-background-secondary text-text font-bold py-3 px-4 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
                             >
                                 Batal
                             </button>

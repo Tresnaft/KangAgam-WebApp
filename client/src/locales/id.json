@@ -18,6 +18,7 @@
       "profesi": "Profesi",
       "sayuran": "Sayuran",
       "kuliner": "Kuliner"
-    }
+    },
+    "totalVisitors": "Total Pengunjung Unik: {{count}}"
   }
 }

@@ -89,7 +89,6 @@ const HomePage = () => {
                 topicId: topicId,
             });
         }
-        // --- PERBAIKAN DI SINI: Kembali menggunakan topicId untuk navigasi ---
         navigate(`/topik/${topicId}`);
     };
 
@@ -117,11 +116,11 @@ const HomePage = () => {
             transition={pageTransition}
             className="flex flex-col min-h-full"
         >
-            <div className="sticky top-0 z-10 bg-background border-b border-gray-200">
+            <div className="sticky top-0 z-10 bg-background border-b border-gray-200 dark:border-gray-700">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                    <div className="py-5">
+                    <div className="py-8 flex flex-col sm:flex-row justify-between items-center gap-4">
                         <PageHeader title={t('welcomeMessage')} />
-                        <div className="mt-4 relative">
+                        <div className="relative w-full sm:w-auto">
                             <span className="absolute inset-y-0 left-0 flex items-center pl-3">
                                 <SearchIcon />
                             </span>
@@ -130,7 +129,7 @@ const HomePage = () => {
                                 placeholder="Cari topik..."
                                 value={searchTerm}
                                 onChange={(e) => setSearchTerm(e.target.value)}
-                                className="w-full max-w-xs pl-10 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500"
+                                className="w-full sm:w-64 pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm bg-background-secondary text-text focus:ring-1 focus:ring-primary focus:border-primary"
                             />
                         </div>
                     </div>
@@ -142,38 +141,46 @@ const HomePage = () => {
                     <p className="text-center text-red-500 mt-8">{error}</p>
                 ) : (
                     <>
-                        <div className="flex-grow">
-                            <AnimatePresence mode="wait">
-                                <motion.div
-                                    key={currentPage}
-                                    variants={containerVariants}
-                                    initial="hidden"
-                                    animate="visible"
-                                    className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 sm:gap-6 mt-8"
-                                >
-                                    {currentTopics.map((topic) => (
-                                        <motion.div key={topic._id} variants={cardVariants}>
-                                            <TopicCard
-                                                title={topic.topicName}
-                                                imageUrl={`http://localhost:5000${topic.topicImagePath}`}
-                                                // --- PERBAIKAN DI SINI: Kirim hanya topic._id ---
-                                                onClick={() => handleTopicClick(topic._id)}
-                                                visitCount={topic.visitCount}
-                                            />
+                        {/* ✅ PERUBAHAN: Tambahkan kondisi untuk menampilkan pesan jika tidak ada topik */}
+                        {!isLoading && filteredTopics.length === 0 ? (
+                            <div className="text-center py-20 flex-grow flex items-center justify-center">
+                                <p className="text-xl text-text-secondary">Topik belum tersedia, ditunggu yah {'>'}.{'<'}</p>
+                            </div>
+                        ) : (
+                            <>
+                                <div className="flex-grow">
+                                    <AnimatePresence mode="wait">
+                                        <motion.div
+                                            key={currentPage}
+                                            variants={containerVariants}
+                                            initial="hidden"
+                                            animate="visible"
+                                            className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 sm:gap-6 mt-12"
+                                        >
+                                            {currentTopics.map((topic) => (
+                                                <motion.div key={topic._id} variants={cardVariants}>
+                                                    <TopicCard
+                                                        title={topic.topicName}
+                                                        imageUrl={`http://localhost:5000${topic.topicImagePath}`}
+                                                        onClick={() => handleTopicClick(topic._id)}
+                                                        visitCount={topic.visitCount}
+                                                    />
+                                                </motion.div>
+                                            ))}
                                         </motion.div>
-                                    ))}
-                                </motion.div>
-                            </AnimatePresence>
-                        </div>
-                        
-                        <div className="mt-auto pt-8 pb-8">
-                            <Pagination
-                                currentPage={currentPage}
-                                totalPages={totalPages}
-                                onPageChange={handlePageChange}
-                                totalItems={filteredTopics.length}
-                            />
-                        </div>
+                                    </AnimatePresence>
+                                </div>
+                                
+                                <div className="mt-auto pt-8 pb-8">
+                                    <Pagination
+                                        currentPage={currentPage}
+                                        totalPages={totalPages}
+                                        onPageChange={handlePageChange}
+                                        totalItems={filteredTopics.length}
+                                    />
+                                </div>
+                            </>
+                        )}
                     </>
                 )}
             </div>

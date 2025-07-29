@@ -18,6 +18,7 @@
       "profesi": "Pagawean",
       "sayuran": "Sayuran",
       "kuliner": "Kulinér"
-    }
+    },
+    "totalVisitors": "Total Pangunjung Unik: {{count}}"
   }
 }

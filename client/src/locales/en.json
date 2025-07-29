@@ -18,6 +18,7 @@
       "profesi": "Professions",
       "sayuran": "Vegetables",
       "kuliner": "Culinary"
-    }
+    },
+    "totalVisitors": "Total Unique Visitors: {{count}}"
   }
 }

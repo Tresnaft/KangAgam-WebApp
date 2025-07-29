@@ -9,21 +9,24 @@ const Pagination = ({ currentPage, totalPages, onPageChange, totalItems }) => {
     if (totalPages <= 1) {
         return (
             <div className="flex justify-between items-center mt-6">
-                <p className="text-sm text-gray-600">Total: <span className="font-bold">{totalItems}</span> data</p>
+                {/* ✅ PERUBAHAN: Menggunakan warna teks dari tema */}
+                <p className="text-sm text-text-secondary">Total: <span className="font-bold text-text">{totalItems}</span> data</p>
             </div>
         );
     }
 
     return (
         <div className="flex flex-col sm:flex-row justify-between items-center mt-6 gap-4">
-            <p className="text-sm text-gray-600">
-                Halaman <span className="font-bold">{currentPage}</span> dari <span className="font-bold">{totalPages}</span>
+            {/* ✅ PERUBAHAN: Menggunakan warna teks dari tema */}
+            <p className="text-sm text-text-secondary">
+                Halaman <span className="font-bold text-text">{currentPage}</span> dari <span className="font-bold text-text">{totalPages}</span>
             </p>
             <div className="flex items-center gap-2">
                 <button
                     onClick={() => onPageChange(currentPage - 1)}
                     disabled={currentPage === 1}
-                    className="bg-white text-gray-700 text-sm font-bold w-8 h-8 rounded-md border hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
+                    // ✅ PERUBAHAN: Menggunakan warna dari tema untuk tombol
+                    className="bg-background-secondary text-text text-sm font-bold w-8 h-8 rounded-md border border-gray-300 dark:border-gray-600 hover:bg-gray-200 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
                     aria-label="Halaman sebelumnya"
                 >
                     &larr;
@@ -32,11 +35,12 @@ const Pagination = ({ currentPage, totalPages, onPageChange, totalItems }) => {
                     <button
                         key={number}
                         onClick={() => onPageChange(number)}
+                        // ✅ PERUBAHAN: Menggunakan warna dari tema untuk tombol
                         className={`${
                             currentPage === number
-                                ? 'bg-blue-500 text-white border-blue-500'
-                                : 'bg-white text-gray-700 border hover:bg-gray-100'
-                        } text-sm font-bold w-8 h-8 rounded-md border transition-colors`}
+                                ? 'bg-primary text-white border-primary'
+                                : 'bg-background-secondary text-text border border-gray-300 dark:border-gray-600 hover:bg-gray-200 dark:hover:bg-gray-700'
+                        } text-sm font-bold w-8 h-8 rounded-md transition-colors`}
                     >
                         {number}
                     </button>
@@ -44,7 +48,8 @@ const Pagination = ({ currentPage, totalPages, onPageChange, totalItems }) => {
                 <button
                     onClick={() => onPageChange(currentPage + 1)}
                     disabled={currentPage === totalPages}
-                    className="bg-white text-gray-700 text-sm font-bold w-8 h-8 rounded-md border hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
+                    // ✅ PERUBAHAN: Menggunakan warna dari tema untuk tombol
+                    className="bg-background-secondary text-text text-sm font-bold w-8 h-8 rounded-md border border-gray-300 dark:border-gray-600 hover:bg-gray-200 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
                     aria-label="Halaman berikutnya"
                 >
                     &rarr;

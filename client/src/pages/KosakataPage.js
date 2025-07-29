@@ -35,7 +35,6 @@ const pageTransition = {
     ease: 'anticipate',
     duration: 0.5,
 };
-
 const containerVariants = {
     hidden: { opacity: 0 },
     visible: {
@@ -45,7 +44,6 @@ const containerVariants = {
         },
     },
 };
-
 const cardVariants = {
     hidden: { y: 20, opacity: 0 },
     visible: {
@@ -71,6 +69,7 @@ const KosakataPage = () => {
     const { t, i18n } = useTranslation();
     const isDesktop = useMediaQuery('(min-width: 1024px)');
     const pageTopRef = useRef(null);
+    const activeCardRef = useRef(null);
 
     const [topicInfo, setTopicInfo] = useState(null);
     const [entries, setEntries] = useState([]);
@@ -79,6 +78,8 @@ const KosakataPage = () => {
     const [activeEntry, setActiveEntry] = useState(null);
     const [searchTerm, setSearchTerm] = useState('');
     const [currentPage, setCurrentPage] = useState(1);
+    const [isAudioPlaying, setIsAudioPlaying] = useState(false);
+    const audioRef = useRef(null);
 
     useEffect(() => {
         const fetchData = async () => {
@@ -98,6 +99,7 @@ const KosakataPage = () => {
                     setActiveEntry(entriesData.entries[0]);
                 }
                 setError(null);
+                
             } catch (err) {
                 setError("Gagal memuat data dari server.");
                 console.error(err);
@@ -142,11 +144,88 @@ const KosakataPage = () => {
         }
     };
 
+    const handleCardClick = (entry) => {
+        if (isAudioPlaying) return;
+        setActiveEntry(entry);
+        
+        const audioUrl = findVocab(entry, i18n.language)?.audioUrl;
+        if (!audioUrl) return;
+
+        if (audioRef.current) {
+            audioRef.current.pause();
+        }
+
+        const audio = new Audio(`http://localhost:5000${audioUrl.replace(/\\/g, '/')}`);
+        audioRef.current = audio;
+        setIsAudioPlaying(true);
+
+        let playCount = 0;
+        const handleAudioEnd = () => {
+            playCount++;
+            if (playCount < 2) {
+                audio.currentTime = 0;
+                audio.play();
+            } else {
+                setIsAudioPlaying(false);
+                audio.removeEventListener('ended', handleAudioEnd);
+            }
+        };
+        audio.addEventListener('ended', handleAudioEnd);
+        audio.play();
+    };
+
     const entriesToDisplay = isDesktop ? filteredEntries : paginatedEntries;
 
     if (isLoading) {
         return <LoadingIndicator />;
     }
+
+    const DetailPanel = () => {
+        const languageOrder = ['id', 'su', 'en'];
+        const mainLang = i18n.language;
+        const otherLangs = languageOrder.filter(lang => lang !== mainLang);
+
+        return (
+            <div ref={activeCardRef}>
+                <div className="bg-background-secondary rounded-2xl shadow-inner overflow-hidden">
+                    <div className="aspect-square">
+                        {activeEntry ? (
+                            <AnimatePresence mode="wait">
+                                <motion.img
+                                    key={activeEntry._id}
+                                    initial={{ opacity: 0 }}
+                                    animate={{ opacity: 1 }}
+                                    exit={{ opacity: 0 }}
+                                    src={`http://localhost:5000${activeEntry.entryImagePath.replace(/\\/g, '/')}`} 
+                                    alt="Gambar kosakata" 
+                                    className="w-full h-full object-cover" 
+                                />
+                            </AnimatePresence>
+                        ) : (
+                            <div className="flex items-center justify-center text-text-secondary h-full">Pilih kosakata</div>
+                        )}
+                    </div>
+                </div>
+                {activeEntry && (
+                    <div className="mt-4 text-center bg-background-secondary p-4 rounded-2xl shadow-md">
+                        <AnimatePresence mode="wait">
+                            <motion.div
+                                key={activeEntry._id}
+                                initial={{ opacity: 0, y: 10 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                exit={{ opacity: 0, y: -10 }}
+                            >
+                                <p className="text-2xl font-bold text-text">{findVocab(activeEntry, mainLang)?.vocab}</p>
+                                {otherLangs.map(lang => (
+                                    <p key={lang} className="text-lg text-text-secondary">{findVocab(activeEntry, lang)?.vocab}</p>
+                                ))}
+                            </motion.div>
+                        </AnimatePresence>
+                    </div>
+                )}
+            </div>
+        );
+    };
 
     return (
         <motion.div
@@ -157,33 +236,43 @@ const KosakataPage = () => {
             transition={pageTransition}
             ref={pageTopRef}
         >
-            <div className="sticky top-0 z-10 bg-background pt-4 pb-4 border-b border-gray-200">
+            <div className="sticky top-0 z-20 bg-background pt-4 pb-4 border-b border-gray-200 dark:border-gray-700/50">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                    <PageHeader 
-                        title={getTranslatedTopicName()}
-                        visitCount={topicInfo?.visitCount}
-                    >
-                        <div className='flex items-center gap-4'>
-                            <Link to={`/quiz/${topicId}`} className="bg-blue-100 text-blue-800 font-bold px-4 py-2 rounded-lg text-sm hover:bg-blue-200">{t('quizButton')}</Link>
-                            <Link to="/home" className="text-sm text-gray-600 hover:text-black">← {t("backButton")}</Link>
+                    <div className="flex flex-col gap-4">
+                        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                            <PageHeader 
+                                title={getTranslatedTopicName()}
+                                visitCount={topicInfo?.visitCount}
+                            />
+                            <div className='flex items-center gap-4 w-full sm:w-auto'>
+                                <Link to={`/quiz/${topicId}`} className="flex-1 text-center bg-primary text-white font-bold px-4 py-2 rounded-lg text-sm hover:opacity-90 transition-opacity">{t('quizButton')}</Link>
+                                <Link to="/home" className="flex-1 items-center justify-center gap-2 bg-background-secondary text-text-secondary font-bold px-4 py-2 rounded-lg text-sm hover:bg-gray-200 dark:hover:bg-gray-700 whitespace-nowrap hidden sm:flex">
+                                    <span>←</span>
+                                    <span>{t("backButton")}</span>
+                                </Link>
+                                <Link to="/home" className="flex-1 text-center bg-background-secondary text-text-secondary font-bold px-4 py-2 rounded-lg text-sm hover:bg-gray-200 dark:hover:bg-gray-700 sm:hidden">
+                                    ← {t("backButton")}
+                                </Link>
+                            </div>
                         </div>
-                    </PageHeader>
-                     <div className="mt-4 relative">
-                        <span className="absolute inset-y-0 left-0 flex items-center pl-3">
-                            <SearchIcon />
-                        </span>
-                        <input
-                            type="text"
-                            placeholder="Cari kosakata..."
-                            value={searchTerm}
-                            onChange={(e) => setSearchTerm(e.target.value)}
-                            className="w-full max-w-xs pl-10 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500"
-                        />
+                        
+                        <div className="relative w-full sm:max-w-xs sm:self-end">
+                            <span className="absolute inset-y-0 left-0 flex items-center pl-3">
+                                <SearchIcon />
+                            </span>
+                            <input
+                                type="text"
+                                placeholder="Cari kosakata..."
+                                value={searchTerm}
+                                onChange={(e) => setSearchTerm(e.target.value)}
+                                className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm bg-background-secondary text-text focus:ring-1 focus:ring-primary focus:border-primary shadow-sm"
+                            />
+                        </div>
                     </div>
                 </div>
             </div>
             
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-16">
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-16 mt-8">
                 {error && <p className="text-center text-red-500">{error}</p>}
 
                 {!error && !isLoading && entries.length === 0 && (
@@ -193,48 +282,19 @@ const KosakataPage = () => {
                 )}
                 
                 {!error && entries.length > 0 && (
-                    <div className="lg:grid lg:grid-cols-12 lg:gap-8 mt-8">
-                        <div className="lg:col-span-4 lg:block hidden">
-                            <div className="lg:sticky top-36">
-                                <div className="bg-gray-100 rounded-2xl shadow-inner overflow-hidden">
-                                    <div className="aspect-square">
-                                        {activeEntry ? (
-                                            <AnimatePresence mode="wait">
-                                                <motion.img
-                                                    key={activeEntry._id}
-                                                    initial={{ opacity: 0 }}
-                                                    animate={{ opacity: 1 }}
-                                                    exit={{ opacity: 0 }}
-                                                    src={`http://localhost:5000${activeEntry.entryImagePath.replace(/\\/g, '/')}`} 
-                                                    alt="Gambar kosakata" 
-                                                    className="w-full h-full object-cover" 
-                                                />
-                                            </AnimatePresence>
-                                        ) : (
-                                            <div className="flex items-center justify-center text-gray-400 h-full">Pilih kosakata</div>
-                                        )}
-                                    </div>
+                    <div className="lg:grid lg:grid-cols-3 lg:gap-8">
+                        {isDesktop && (
+                            <div className="lg:col-span-1">
+                                <div className="lg:sticky lg:top-40 z-10">
+                                    <DetailPanel />
                                 </div>
-                                {activeEntry && (
-                                    <div className="mt-4 text-center bg-white p-4 rounded-2xl shadow-md">
-                                        <AnimatePresence mode="wait">
-                                            <motion.div
-                                                key={activeEntry._id}
-                                                initial={{ opacity: 0, y: 10 }}
-                                                animate={{ opacity: 1, y: 0 }}
-                                                exit={{ opacity: 0, y: -10 }}
-                                            >
-                                                <p className="text-2xl font-bold text-gray-800">{findVocab(activeEntry, 'id')?.vocab}</p>
-                                                <p className="text-lg text-gray-600">{findVocab(activeEntry, 'su')?.vocab}</p>
-                                                <p className="text-lg text-gray-500 italic">{findVocab(activeEntry, 'en')?.vocab}</p>
-                                            </motion.div>
-                                        </AnimatePresence>
-                                    </div>
-                                )}
                             </div>
-                        </div>
+                        )}
                         
-                        <div className="lg:col-span-8 mt-8 lg:mt-0 flex flex-col">
+                        {/* ✅ PERBAIKAN: Kolom ini sekarang mengambil lebar penuh di semua ukuran layar */}
+                        <div className={isDesktop ? "lg:col-span-2" : "w-full"}>
+                            {/* ✅ PERBAIKAN: Menghapus blok yang salah menampilkan DetailPanel di mobile */}
+                            {/* {!isDesktop && ( ... blok ini dihapus ... )} */}
                             {entriesToDisplay.length > 0 ? (
                                 <AnimatePresence mode="wait">
                                     <motion.div
@@ -242,7 +302,7 @@ const KosakataPage = () => {
                                         variants={containerVariants}
                                         initial="hidden"
                                         animate="visible"
-                                        className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 flex-grow"
+                                        className="grid grid-cols-2 sm:grid-cols-3 gap-4"
                                     >
                                         {entriesToDisplay.map((entry) => {
                                             const currentVocab = findVocab(entry, i18n.language);
@@ -253,9 +313,10 @@ const KosakataPage = () => {
                                                     <KosakataCard 
                                                         content={currentVocab.vocab}
                                                         imageUrl={`http://localhost:5000${entry.entryImagePath.replace(/\\/g, '/')}`}
-                                                        audioUrl={`http://localhost:5000${currentVocab.audioUrl.replace(/\\/g, '/')}`}
                                                         isActive={activeEntry && activeEntry._id === entry._id}
-                                                        onCardClick={() => setActiveEntry(entry)}
+                                                        isPlaying={isAudioPlaying && activeEntry?._id === entry._id}
+                                                        isAnyAudioPlaying={isAudioPlaying}
+                                                        onCardClick={() => handleCardClick(entry)}
                                                     />
                                                 </motion.div>
                                             );
@@ -263,12 +324,12 @@ const KosakataPage = () => {
                                     </motion.div>
                                 </AnimatePresence>
                             ) : (
-                                <div className="text-center py-20 flex-grow">
+                                <div className="text-center py-20">
                                     <p className="text-xl text-gray-500">Kosakata yang Anda cari tidak ditemukan.</p>
                                 </div>
                             )}
                             {!isDesktop && (
-                                <div className="mt-auto pt-8">
+                                <div className="mt-12 pt-8">
                                     <Pagination
                                         currentPage={currentPage}
                                         totalPages={totalPages}

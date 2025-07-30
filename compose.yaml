@@ -36,7 +36,7 @@ services:
       # We now also mount our new startup script
       - ./init-mongo.sh:/usr/local/bin/init-mongo.sh
     # We COMPLETELY REPLACE the old 'command' with this new one
-    command: /usr/local/bin/init-mongo.sh
+    command: ["bash", "/usr/local/bin/init-mongo.sh"]
     healthcheck:
       test: |
         mongosh --host database --eval "quit(db.isMaster().ismaster ? 0 : 1)"

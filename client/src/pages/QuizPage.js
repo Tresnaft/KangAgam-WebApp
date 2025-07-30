@@ -2,65 +2,28 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { motion, AnimatePresence } from 'framer-motion';
+import useAudioFeedback from '../hooks/useAudioFeedback';
 import { getEntriesByTopicId } from '../services/entryService';
 import { getTopicById } from '../services/topicService';
 import LoadingIndicator from '../components/ui/LoadingIndicator';
 import PageHeader from '../components/ui/PageHeader';
 
-// ✅ 1. KOMPONEN BARU UNTUK FEEDBACK POPUP
-const CheckIcon = () => (
-    <svg className="w-16 h-16 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-    </svg>
-);
+// --- Komponen QuizFeedbackPopup ---
+const CheckIcon = () => ( <svg className="w-16 h-16 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg> );
+const ExclamationIcon = () => ( <svg className="w-16 h-16 text-yellow-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg> );
 
-const ExclamationIcon = () => (
-     <svg className="w-16 h-16 text-yellow-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-    </svg>
-);
-
-const QuizFeedbackPopup = ({ isOpen, type, onClose }) => {
-    useEffect(() => {
-        if (isOpen) {
-            const timer = setTimeout(() => {
-                onClose();
-            }, 1200); // Popup akan hilang setelah 1.2 detik
-            return () => clearTimeout(timer);
-        }
-    }, [isOpen, onClose]);
-
+const QuizFeedbackPopup = ({ isOpen, type }) => {
     const content = {
-        correct: {
-            icon: <CheckIcon />,
-            text: "Hebat!",
-            bgColor: "bg-green-100 dark:bg-green-900/50",
-        },
-        incorrect: {
-            icon: <ExclamationIcon />,
-            text: "Coba Lagi, Ya!",
-            bgColor: "bg-yellow-100 dark:bg-yellow-900/50",
-        },
+        correct: { icon: <CheckIcon />, text: "Hebat!", bgColor: "bg-green-100 dark:bg-green-900/50" },
+        incorrect: { icon: <ExclamationIcon />, text: "Coba Lagi, Ya!", bgColor: "bg-yellow-100 dark:bg-yellow-900/50" },
     };
-
     const selectedContent = content[type] || content.correct;
 
     return (
         <AnimatePresence>
             {isOpen && (
-                <motion.div
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    exit={{ opacity: 0 }}
-                    className="fixed inset-0 bg-black/30 backdrop-blur-sm z-50 flex items-center justify-center"
-                >
-                    <motion.div
-                        initial={{ scale: 0.5, opacity: 0 }}
-                        animate={{ scale: 1, opacity: 1 }}
-                        exit={{ scale: 0.5, opacity: 0 }}
-                        transition={{ type: 'spring', stiffness: 300, damping: 25 }}
-                        className={`p-8 rounded-2xl flex flex-col items-center gap-4 ${selectedContent.bgColor}`}
-                    >
+                <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 bg-black/30 backdrop-blur-sm z-50 flex items-center justify-center">
+                    <motion.div initial={{ scale: 0.5, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.5, opacity: 0 }} transition={{ type: 'spring', stiffness: 300, damping: 25 }} className={`p-8 rounded-2xl flex flex-col items-center gap-4 ${selectedContent.bgColor}`}>
                         {selectedContent.icon}
                         <p className="text-2xl font-bold text-text">{selectedContent.text}</p>
                     </motion.div>
@@ -71,55 +34,41 @@ const QuizFeedbackPopup = ({ isOpen, type, onClose }) => {
 };
 
 
-// Helper functions and variants remain the same...
+// ... Helper functions and variants ...
 const shuffleArray = (array) => [...array].sort(() => Math.random() - 0.5);
-const findVocab = (entry, lang) => {
-    if (!entry || !entry.entryVocabularies) return null;
-    return entry.entryVocabularies.find(v => v.language.languageCode === lang) || entry.entryVocabularies[0];
-};
+const findVocab = (entry, lang) => entry?.entryVocabularies?.find(v => v.language.languageCode === lang) || entry?.entryVocabularies?.[0];
 const modalContainerVariants = { hidden: { opacity: 0 }, visible: { opacity: 1, transition: { staggerChildren: 0.2 } } };
 const modalItemVariants = { hidden: { y: 20, opacity: 0 }, visible: { y: 0, opacity: 1 } };
 
+
 const QuizPage = () => {
+    // ... state hooks ...
     const { topicId } = useParams();
-    const { i18n, t } = useTranslation();
+    const { i18n } = useTranslation();
     const navigate = useNavigate();
     const audioRef = useRef(null);
-
+    const { playCorrectSound, playIncorrectSound } = useAudioFeedback();
     const [topicName, setTopicName] = useState('');
     const [allEntries, setAllEntries] = useState([]);
     const [questions, setQuestions] = useState([]);
     const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
     const [options, setOptions] = useState([]);
     const [score, setScore] = useState(0);
-    const [totalWrong, setTotalWrong] = useState(0);
+    const [wrongCount, setWrongCount] = useState(0);
+    // ✅ 1. TAMBAHKAN KEMBALI STATE UNTUK ATTEMPTS PER PERTANYAAN
     const [wrongAttempts, setWrongAttempts] = useState(0);
     const [feedback, setFeedback] = useState({ show: false, correct: false, selectedId: null });
     const [quizState, setQuizState] = useState('loading');
-    
-    // ✅ 2. Tambahkan state untuk mengontrol popup
     const [feedbackPopup, setFeedbackPopup] = useState({ isOpen: false, type: null });
+    const [isAnswering, setIsAnswering] = useState(false);
 
+    // ... useEffects for fetching data and setting up questions (no changes here) ...
     const playQuestionAudio = useCallback((audioUrl) => {
         if (!audioUrl) return;
         if (audioRef.current) audioRef.current.pause();
-        
         const audio = new Audio(`http://localhost:5000${audioUrl}`);
         audioRef.current = audio;
-
-        let playCount = 0;
-        const handleAudioEnd = () => {
-            playCount++;
-            if (playCount < 2) {
-                audio.currentTime = 0;
-                audio.play().catch(e => e.name !== 'AbortError' && console.error(e));
-            } else {
-                audio.removeEventListener('ended', handleAudioEnd);
-            }
-        };
-        audio.addEventListener('ended', handleAudioEnd);
-        const playPromise = audio.play();
-        if (playPromise) playPromise.catch(e => e.name !== 'AbortError' && console.error(e));
+        audio.play().catch(e => e.name !== 'AbortError' && console.error(e));
     }, []);
 
     useEffect(() => {
@@ -144,10 +93,7 @@ const QuizPage = () => {
     useEffect(() => {
         const initializeQuiz = async () => {
             try {
-                const [topicData, entriesData] = await Promise.all([
-                    getTopicById(topicId),
-                    getEntriesByTopicId(topicId)
-                ]);
+                const [topicData, entriesData] = await Promise.all([getTopicById(topicId), getEntriesByTopicId(topicId)]);
                 const entries = entriesData.entries || [];
                 if (entries.length < 4) {
                     setQuizState('not_enough_data');
@@ -172,9 +118,11 @@ const QuizPage = () => {
         }
     }, [currentQuestionIndex, questions, quizState, setupQuestion, allEntries]);
 
-    // ✅ 3. Perbarui logika handler jawaban untuk memicu popup
-    const handleAnswerClick = (selectedEntry) => {
-        if (feedback.show) return;
+
+    // --- LOGIKA UTAMA YANG DIPERBARUI ---
+    const handleAnswerClick = async (selectedEntry) => {
+        if (isAnswering) return;
+        setIsAnswering(true);
 
         const isCorrect = selectedEntry._id === questions[currentQuestionIndex]._id;
         setFeedback({ show: true, correct: isCorrect, selectedId: selectedEntry._id });
@@ -182,23 +130,35 @@ const QuizPage = () => {
         if (isCorrect) {
             setScore(s => s + 1);
             setFeedbackPopup({ isOpen: true, type: 'correct' });
-            setTimeout(() => handleNextQuestion(), 1200);
+            await playCorrectSound();
+            handleNextQuestion();
         } else {
-            if (wrongAttempts + 1 >= 3) {
-                setTotalWrong(w => w + 1);
-                setFeedbackPopup({ isOpen: true, type: 'incorrect' });
-                setTimeout(() => handleNextQuestion(), 1200);
+            // Logika untuk jawaban salah
+            const newWrongAttempts = wrongAttempts + 1;
+            setWrongAttempts(newWrongAttempts);
+            
+            setFeedbackPopup({ isOpen: true, type: 'incorrect' });
+            await playIncorrectSound();
+            
+            if (newWrongAttempts >= 3) {
+                // Jika sudah salah 3 kali, tambah skor salah dan lanjut
+                setWrongCount(w => w + 1);
+                handleNextQuestion();
             } else {
-                setWrongAttempts(w => w + 1);
-                setTimeout(() => setFeedback({ show: false, correct: false, selectedId: null }), 1200);
+                // Jika belum 3 kali, sembunyikan popup dan biarkan user coba lagi
+                setFeedbackPopup({ isOpen: false, type: null });
+                setFeedback({ show: false, correct: false, selectedId: null });
             }
         }
+        
+        setIsAnswering(false);
     };
 
     const handleNextQuestion = () => {
         setFeedback({ show: false, correct: false, selectedId: null });
+        setFeedbackPopup({ isOpen: false, type: null });
+        // ✅ 2. RESET ATTEMPTS KETIKA PINDAH PERTANYAAN
         setWrongAttempts(0);
-        setFeedbackPopup({ isOpen: false, type: null }); // Pastikan popup tertutup
         if (currentQuestionIndex + 1 >= questions.length) {
             setQuizState('finished');
         } else {
@@ -208,26 +168,26 @@ const QuizPage = () => {
     
     const restartQuiz = () => {
         setScore(0);
+        setWrongCount(0);
+        // ✅ 3. RESET ATTEMPTS KETIKA RESTART KUIS
         setWrongAttempts(0);
-        setTotalWrong(0);
         setCurrentQuestionIndex(0);
         setQuestions(shuffleArray(allEntries).slice(0, 5));
         setQuizState('playing');
+        setIsAnswering(false);
     };
 
     const currentQuestion = questions[currentQuestionIndex];
     const questionAudio = currentQuestion ? findVocab(currentQuestion, i18n.language)?.audioUrl : null;
 
     if (quizState === 'loading') return <div className="flex items-center justify-center h-screen"><LoadingIndicator /></div>;
-    // ... (Error and not_enough_data states remain the same) ...
-
+    
     return (
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="flex flex-col h-full">
             <div className="sticky top-0 z-10 bg-background border-b border-background">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                     <div className="py-5">
                         <PageHeader title={`Kuis Topik ${topicName}`}>
-                            {/* ✅ 4. Perbarui gaya tombol "Kembali" */}
                             <Link to={`/topik/${topicId}`} className="flex items-center justify-center gap-2 bg-background-secondary text-text-secondary font-bold px-4 py-2 rounded-lg text-sm hover:bg-gray-200 dark:hover:bg-gray-700 whitespace-nowrap">
                                 <span>←</span>
                                 <span>Kembali ke Topik</span>
@@ -241,25 +201,17 @@ const QuizPage = () => {
                 {quizState === 'playing' && currentQuestion && (
                     <div className="w-full max-w-4xl mx-auto flex flex-col items-center">
                         <h3 className="text-2xl font-semibold text-text-secondary text-center">Dengarkan Pertanyaan melalui audio ini</h3>
-                        <motion.button 
-                            whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}
-                            onClick={() => playQuestionAudio(questionAudio)}
-                            className="my-6 w-32 h-32 bg-accent/20 text-accent rounded-2xl flex items-center justify-center text-5xl shadow-lg"
-                        >🔊</motion.button>
+                        <motion.button whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }} onClick={() => playQuestionAudio(questionAudio)} className="my-6 w-32 h-32 bg-accent/20 text-accent rounded-2xl flex items-center justify-center text-5xl shadow-lg">🔊</motion.button>
                         <div className="flex justify-center items-center gap-4">
                             <p className="font-bold text-text">Nilai Kamu</p>
                             <div className="bg-secondary/20 text-secondary font-bold px-4 py-2 rounded-lg">Benar: {score}</div>
-                            <div className="bg-red-500/10 text-red-500 font-bold px-4 py-2 rounded-lg">Salah: {totalWrong}</div>
+                            <div className="bg-red-500/10 text-red-500 font-bold px-4 py-2 rounded-lg">Salah: {wrongCount}</div>
                         </div>
                         <hr className="w-full my-8 border-background-secondary" />
                         <div className="w-full">
                             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 sm:gap-6">
                                 {options.map(opt => (
-                                    <motion.div 
-                                        key={opt._id}
-                                        onClick={() => handleAnswerClick(opt)}
-                                        className={`relative aspect-square bg-background-secondary rounded-2xl overflow-hidden shadow-md cursor-pointer border-4 transition-all duration-300 ${feedback.show && feedback.selectedId === opt._id ? (feedback.correct ? 'border-secondary scale-105' : 'border-red-500') : 'border-transparent'}`}
-                                    >
+                                    <motion.div key={opt._id} onClick={() => handleAnswerClick(opt)} className={`relative aspect-square bg-background-secondary rounded-2xl overflow-hidden shadow-md cursor-pointer border-4 transition-all duration-300 ${feedback.show && feedback.selectedId === opt._id ? (feedback.correct ? 'border-secondary scale-105' : 'border-red-500') : 'border-transparent'}`}>
                                         <img src={`http://localhost:5000${opt.entryImagePath}`} className="w-full h-full object-cover" alt="Pilihan Jawaban" />
                                     </motion.div>
                                 ))}
@@ -285,12 +237,7 @@ const QuizPage = () => {
                 )}
             </AnimatePresence>
             
-            {/* ✅ 5. Render komponen popup di sini */}
-            <QuizFeedbackPopup 
-                isOpen={feedbackPopup.isOpen}
-                type={feedbackPopup.type}
-                onClose={() => setFeedbackPopup({ isOpen: false, type: null })}
-            />
+            <QuizFeedbackPopup isOpen={feedbackPopup.isOpen} type={feedbackPopup.type} />
         </motion.div>
     );
 };

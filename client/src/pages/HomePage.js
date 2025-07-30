@@ -7,6 +7,7 @@ import TopicCard from '../components/ui/TopicCard';
 import PageHeader from '../components/ui/PageHeader';
 import LoadingIndicator from '../components/ui/LoadingIndicator';
 import Pagination from '../components/ui/Pagination';
+import InfoModal from '../components/ui/InfoModal'; // ✅ 1. Impor komponen modal baru
 import { getTopics } from '../services/topicService';
 import { useAuth } from '../context/AuthContext';
 import { logVisit } from '../services/visitorLogService';
@@ -62,6 +63,8 @@ const HomePage = () => {
     const [error, setError] = useState(null);
     const [searchTerm, setSearchTerm] = useState('');
     const [currentPage, setCurrentPage] = useState(1);
+    // ✅ 2. Tambahkan state untuk mengontrol modal info
+    const [infoModal, setInfoModal] = useState({ isOpen: false, title: '', message: '' });
 
     useEffect(() => {
         const fetchData = async () => {
@@ -82,14 +85,26 @@ const HomePage = () => {
         fetchData();
     }, [i18n.language]);
 
-    const handleTopicClick = (topicId) => {
+    // ✅ 3. Perbarui logika klik topik
+    const handleTopicClick = (topic) => {
+        // Cek jika topik memiliki kosakata
+        if (!topic.topicEntries || topic.topicEntries.length === 0) {
+            setInfoModal({
+                isOpen: true,
+                title: 'Informasi',
+                message: 'Topik ini belum memiliki kosakata, ditunggu yah!',
+            });
+            return; // Hentikan navigasi
+        }
+
+        // Jika ada kosakata, lanjutkan seperti biasa
         if (user && user._id) {
             logVisit({
                 learnerId: user._id,
-                topicId: topicId,
+                topicId: topic._id,
             });
         }
-        navigate(`/topik/${topicId}`);
+        navigate(`/topik/${topic._id}`);
     };
 
     const filteredTopics = topics.filter(topic =>
@@ -141,7 +156,6 @@ const HomePage = () => {
                     <p className="text-center text-red-500 mt-8">{error}</p>
                 ) : (
                     <>
-                        {/* ✅ PERUBAHAN: Tambahkan kondisi untuk menampilkan pesan jika tidak ada topik */}
                         {!isLoading && filteredTopics.length === 0 ? (
                             <div className="text-center py-20 flex-grow flex items-center justify-center">
                                 <p className="text-xl text-text-secondary">Topik belum tersedia, ditunggu yah {'>'}.{'<'}</p>
@@ -159,10 +173,11 @@ const HomePage = () => {
                                         >
                                             {currentTopics.map((topic) => (
                                                 <motion.div key={topic._id} variants={cardVariants}>
+                                                    {/* ✅ 4. Kirim seluruh objek 'topic' ke handler */}
                                                     <TopicCard
                                                         title={topic.topicName}
                                                         imageUrl={`http://localhost:5000${topic.topicImagePath}`}
-                                                        onClick={() => handleTopicClick(topic._id)}
+                                                        onClick={() => handleTopicClick(topic)}
                                                         visitCount={topic.visitCount}
                                                     />
                                                 </motion.div>
@@ -184,6 +199,14 @@ const HomePage = () => {
                     </>
                 )}
             </div>
+            
+            {/* ✅ 5. Render modal di sini */}
+            <InfoModal 
+                isOpen={infoModal.isOpen}
+                onClose={() => setInfoModal({ isOpen: false, title: '', message: '' })}
+                title={infoModal.title}
+                message={infoModal.message}
+            />
         </motion.div>
     );
 };

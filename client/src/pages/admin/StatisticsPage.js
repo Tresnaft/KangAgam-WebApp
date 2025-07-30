@@ -60,19 +60,62 @@ const StatisticsPage = () => {
         cityDistribution: [],
         mostfrequentcity: {}
     });
+
+    // ✅ FIX: Separate filters for each card
     const [filters, setFilters] = useState({
         visitorsPeriod: 'monthly',
+        uniqueVisitorsPeriod: 'monthly', // Separate filter for unique visitors
         topicPeriod: 'monthly',
         cityPeriod: 'monthly',
     });
-    // ✅ 1. Tambahkan state terpisah untuk loading awal dan loading saat filter
+
+    // ✅ FIX: Separate loading states for each card
     const [isInitialLoading, setIsInitialLoading] = useState(true);
-    const [isFetching, setIsFetching] = useState(false);
+    const [loadingStates, setLoadingStates] = useState({
+        visitors: false,
+        uniqueVisitors: false,
+        topics: false,
+        cities: false,
+    });
     const [error, setError] = useState(null);
 
-    const fetchData = useCallback(async () => {
+    // ✅ FIX: Function to update specific loading state
+    const setSpecificLoading = (cardType, isLoading) => {
+        setLoadingStates(prev => ({
+            ...prev,
+            [cardType]: isLoading
+        }));
+    };
+
+    const fetchData = useCallback(async (changedFilter = null) => {
         if (!user?.token) return;
-        setIsFetching(true); // Tampilkan loading di dalam kartu
+        
+        // ✅ FIX: Set loading only for affected card
+        if (changedFilter) {
+            switch (changedFilter) {
+                case 'visitorsPeriod':
+                    setSpecificLoading('visitors', true);
+                    break;
+                case 'uniqueVisitorsPeriod':
+                    setSpecificLoading('uniqueVisitors', true);
+                    break;
+                case 'topicPeriod':
+                    setSpecificLoading('topics', true);
+                    break;
+                case 'cityPeriod':
+                    setSpecificLoading('cities', true);
+                    break;
+                default:
+                    // Loading all cards only during initial load
+                    setLoadingStates({
+                        visitors: true,
+                        uniqueVisitors: true,
+                        topics: true,
+                        cities: true,
+                    });
+            }
+        }
+
         try {
             const data = await getDashboardData(filters, user.token);
             setStats(data);
@@ -81,8 +124,14 @@ const StatisticsPage = () => {
             setError('Gagal memuat data statistik.');
             console.error(err);
         } finally {
-            setIsInitialLoading(false); // Sembunyikan loading halaman penuh
-            setIsFetching(false); // Sembunyikan loading di dalam kartu
+            setIsInitialLoading(false);
+            // Reset all loading states
+            setLoadingStates({
+                visitors: false,
+                uniqueVisitors: false,
+                topics: false,
+                cities: false,
+            });
         }
     }, [user, filters]);
 
@@ -90,12 +139,18 @@ const StatisticsPage = () => {
         fetchData();
     }, [fetchData]);
 
+    // ✅ FIX: Handler with tracking which filter changed
     const handleFilterChange = (e) => {
         const { name, value } = e.target;
         setFilters(prev => ({ ...prev, [name]: value }));
+        
+        // Trigger fetch with information about which filter changed
+        setTimeout(() => {
+            fetchData(name);
+        }, 0);
     };
 
-    // ... (Konfigurasi Chart Data tetap sama)
+    // Chart data configurations
     const visitorChartData = {
         labels: stats.visitorDistribution?.map(d => d.label) || [],
         datasets: [{
@@ -188,7 +243,6 @@ const StatisticsPage = () => {
         ? stats.cityDistribution[0].label
         : 'N/A';
 
-    // ✅ 2. Tampilkan loading halaman penuh hanya saat pertama kali
     if (isInitialLoading) return <div className="flex items-center justify-center h-96"><LoadingIndicator /></div>;
     if (error) return <p className="text-center text-red-500">{error}</p>;
 
@@ -206,19 +260,23 @@ const StatisticsPage = () => {
             </PageHeader>
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
-                {/* ✅ 3. Terapkan loading di dalam setiap kartu */}
                 {/* Card Total Kunjungan */}
                 <div className="bg-background-secondary p-6 rounded-xl shadow-md">
                     <div className="flex justify-between items-center mb-4">
                         <h3 className="font-bold text-text">Total Kunjungan</h3>
-                        <select name="visitorsPeriod" value={filters.visitorsPeriod} onChange={handleFilterChange} className="bg-background text-text-secondary rounded-lg px-3 py-1 text-sm">
+                        <select 
+                            name="visitorsPeriod" 
+                            value={filters.visitorsPeriod} 
+                            onChange={handleFilterChange} 
+                            className="bg-background text-text-secondary rounded-lg px-3 py-1 text-sm"
+                        >
                             <option value="daily">Harian</option>
                             <option value="weekly">Mingguan</option>
                             <option value="monthly">Bulanan</option>
                             <option value="yearly">Tahunan</option>
                         </select>
                     </div>
-                    {isFetching ? (
+                    {loadingStates.visitors ? (
                         <div className="h-72 flex items-center justify-center"><LoadingIndicator /></div>
                     ) : (
                         <>
@@ -234,37 +292,47 @@ const StatisticsPage = () => {
                 <div className="bg-background-secondary p-6 rounded-xl shadow-md">
                     <div className="flex justify-between items-center mb-4">
                         <h3 className="font-bold text-text">Topik Favorit</h3>
-                         <select name="topicPeriod" value={filters.topicPeriod} onChange={handleFilterChange} className="bg-background text-text-secondary rounded-lg px-3 py-1 text-sm">
+                        <select 
+                            name="topicPeriod" 
+                            value={filters.topicPeriod} 
+                            onChange={handleFilterChange} 
+                            className="bg-background text-text-secondary rounded-lg px-3 py-1 text-sm"
+                        >
                             <option value="daily">Harian</option>
                             <option value="weekly">Mingguan</option>
                             <option value="monthly">Bulanan</option>
                             <option value="yearly">Tahunan</option>
                         </select>
                     </div>
-                    {isFetching ? (
+                    {loadingStates.topics ? (
                         <div className="h-72 flex items-center justify-center"><LoadingIndicator /></div>
                     ) : (
                         <>
                             <p className="text-3xl font-bold text-text">{getTopicName(stats.favoriteTopic?.name)}</p>
-                             <div className="mt-4 h-60">
+                            <div className="mt-4 h-60">
                                 <Bar ref={topicChartRef} options={chartOptions} data={topicChartData} />
                             </div>
                         </>
                     )}
                 </div>
 
-                {/* Card Pengunjung Unik */}
+                {/* ✅ FIXED: Card Pengunjung Unik - Using separate filter */}
                 <div className="bg-background-secondary p-6 rounded-xl shadow-md">
                     <div className="flex justify-between items-center mb-4">
                         <h3 className="font-bold text-text">Pengunjung Unik</h3>
-                        <select name="visitorsPeriod" value={filters.visitorsPeriod} onChange={handleFilterChange} className="bg-background text-text-secondary rounded-lg px-3 py-1 text-sm">
+                        <select 
+                            name="uniqueVisitorsPeriod" 
+                            value={filters.uniqueVisitorsPeriod} 
+                            onChange={handleFilterChange} 
+                            className="bg-background text-text-secondary rounded-lg px-3 py-1 text-sm"
+                        >
                             <option value="daily">Harian</option>
                             <option value="weekly">Mingguan</option>
                             <option value="monthly">Bulanan</option>
                             <option value="yearly">Tahunan</option>
                         </select>
                     </div>
-                    {isFetching ? (
+                    {loadingStates.uniqueVisitors ? (
                         <div className="h-72 flex items-center justify-center"><LoadingIndicator /></div>
                     ) : (
                         <>
@@ -280,14 +348,19 @@ const StatisticsPage = () => {
                 <div className="bg-background-secondary p-6 rounded-xl shadow-md">
                     <div className="flex justify-between items-center mb-4">
                         <h3 className="font-bold text-text">Domisili Pengunjung Aktif</h3>
-                        <select name="cityPeriod" value={filters.cityPeriod} onChange={handleFilterChange} className="bg-background text-text-secondary rounded-lg px-3 py-1 text-sm">
+                        <select 
+                            name="cityPeriod" 
+                            value={filters.cityPeriod} 
+                            onChange={handleFilterChange} 
+                            className="bg-background text-text-secondary rounded-lg px-3 py-1 text-sm"
+                        >
                             <option value="daily">Harian</option>
                             <option value="weekly">Mingguan</option>
                             <option value="monthly">Bulanan</option>
                             <option value="yearly">Tahunan</option>
                         </select>
                     </div>
-                    {isFetching ? (
+                    {loadingStates.cities ? (
                         <div className="h-72 flex items-center justify-center"><LoadingIndicator /></div>
                     ) : (
                         <>

@@ -176,6 +176,9 @@ const KosakataPage = () => {
 
     const entriesToDisplay = isDesktop ? filteredEntries : paginatedEntries;
 
+    // ✅ 1. Logika kuis dinonaktifkan jika kosakata < 5
+    const isQuizDisabled = !entries || entries.length < 5;
+
     if (isLoading) {
         return <LoadingIndicator />;
     }
@@ -245,7 +248,18 @@ const KosakataPage = () => {
                                 visitCount={topicInfo?.visitCount}
                             />
                             <div className='flex items-center gap-4 w-full sm:w-auto'>
-                                <Link to={`/quiz/${topicId}`} className="flex-1 text-center bg-primary text-white font-bold px-4 py-2 rounded-lg text-sm hover:opacity-90 transition-opacity">{t('quizButton')}</Link>
+                                <Link 
+                                    to={isQuizDisabled ? '#' : `/quiz/${topicId}`}
+                                    onClick={(e) => isQuizDisabled && e.preventDefault()}
+                                    className={`flex-1 text-center font-bold px-4 py-2 rounded-lg text-sm transition-opacity ${
+                                        isQuizDisabled 
+                                            ? 'bg-gray-300 text-gray-500 cursor-not-allowed' 
+                                            : 'bg-primary text-white hover:opacity-90'
+                                    }`}
+                                    title={isQuizDisabled ? "Kuis membutuhkan minimal 5 kosakata" : "Mulai Kuis"}
+                                >
+                                    {t('quizButton')}
+                                </Link>
                                 <Link to="/home" className="flex-1 items-center justify-center gap-2 bg-background-secondary text-text-secondary font-bold px-4 py-2 rounded-lg text-sm hover:bg-gray-200 dark:hover:bg-gray-700 whitespace-nowrap hidden sm:flex">
                                     <span>←</span>
                                     <span>{t("backButton")}</span>
@@ -291,10 +305,9 @@ const KosakataPage = () => {
                             </div>
                         )}
                         
-                        {/* ✅ PERBAIKAN: Kolom ini sekarang mengambil lebar penuh di semua ukuran layar */}
+                        {/* ✅ 2. Kolom ini sekarang mengambil lebar penuh di semua ukuran layar */}
                         <div className={isDesktop ? "lg:col-span-2" : "w-full"}>
-                            {/* ✅ PERBAIKAN: Menghapus blok yang salah menampilkan DetailPanel di mobile */}
-                            {/* {!isDesktop && ( ... blok ini dihapus ... )} */}
+                            {/* ✅ 3. Panel detail TIDAK LAGI dirender di mobile */}
                             {entriesToDisplay.length > 0 ? (
                                 <AnimatePresence mode="wait">
                                     <motion.div

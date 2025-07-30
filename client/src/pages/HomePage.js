@@ -3,11 +3,15 @@ import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 
+// ✅ 1. IMPORT HOOK AUDIO DAN MODAL BARU
+import usePageAudio from '../hooks/usePageAudio';
+import AudioProgressModal from '../components/ui/AudioProgressModal';
+
 import TopicCard from '../components/ui/TopicCard';
 import PageHeader from '../components/ui/PageHeader';
 import LoadingIndicator from '../components/ui/LoadingIndicator';
 import Pagination from '../components/ui/Pagination';
-import InfoModal from '../components/ui/InfoModal'; // ✅ 1. Impor komponen modal baru
+import InfoModal from '../components/ui/InfoModal';
 import { getTopics } from '../services/topicService';
 import { useAuth } from '../context/AuthContext';
 import { logVisit } from '../services/visitorLogService';
@@ -57,20 +61,35 @@ const HomePage = () => {
     const { t, i18n } = useTranslation();
     const navigate = useNavigate();
     const { user } = useAuth();
+    // ✅ 2. INISIALISASI HOOK AUDIO
+    const { playOpeningSound } = usePageAudio();
 
     const [topics, setTopics] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState(null);
     const [searchTerm, setSearchTerm] = useState('');
     const [currentPage, setCurrentPage] = useState(1);
-    // ✅ 2. Tambahkan state untuk mengontrol modal info
     const [infoModal, setInfoModal] = useState({ isOpen: false, title: '', message: '' });
+    // ✅ 3. STATE UNTUK MENGONTROL MODAL AUDIO
+    const [isAudioPlaying, setIsAudioPlaying] = useState(true);
+
+    useEffect(() => {
+        const playIntro = async () => {
+            // Hanya putar audio jika ini adalah kunjungan pertama sesi ini
+            if (!sessionStorage.getItem('hasVisitedHome')) {
+                await playOpeningSound();
+                sessionStorage.setItem('hasVisitedHome', 'true');
+            }
+            setIsAudioPlaying(false);
+        };
+        playIntro();
+    }, [playOpeningSound]);
 
     useEffect(() => {
         const fetchData = async () => {
             try {
                 setIsLoading(true);
-                const minDelay = new Promise(resolve => setTimeout(resolve, 1000));
+                const minDelay = new Promise(resolve => setTimeout(resolve, 500)); // Sedikit percepat delay
                 const dataFetch = getTopics(i18n.language);
                 const [data] = await Promise.all([dataFetch, minDelay]);
                 setTopics(data.topics || []);
@@ -85,19 +104,18 @@ const HomePage = () => {
         fetchData();
     }, [i18n.language]);
 
-    // ✅ 3. Perbarui logika klik topik
     const handleTopicClick = (topic) => {
-        // Cek jika topik memiliki kosakata
+        if (isAudioPlaying) return;
+
         if (!topic.topicEntries || topic.topicEntries.length === 0) {
             setInfoModal({
                 isOpen: true,
                 title: 'Informasi',
                 message: 'Topik ini belum memiliki kosakata, ditunggu yah!',
             });
-            return; // Hentikan navigasi
+            return;
         }
 
-        // Jika ada kosakata, lanjutkan seperti biasa
         if (user && user._id) {
             logVisit({
                 learnerId: user._id,
@@ -117,7 +135,7 @@ const HomePage = () => {
     const currentTopics = filteredTopics.slice(indexOfFirstItem, indexOfLastItem);
     const handlePageChange = (pageNumber) => setCurrentPage(pageNumber);
 
-
+    // Tampilkan loading indicator jika data belum siap, terlepas dari audio
     if (isLoading) {
         return <LoadingIndicator />;
     }
@@ -131,6 +149,9 @@ const HomePage = () => {
             transition={pageTransition}
             className="flex flex-col min-h-full"
         >
+            {/* ✅ 4. RENDER MODAL AUDIO (hanya jika audio playing DAN data sudah load) */}
+            <AudioProgressModal isOpen={isAudioPlaying && !isLoading} message="Ayoo kita belajar..." />
+            
             <div className="sticky top-0 z-10 bg-background border-b border-gray-200 dark:border-gray-700">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                     <div className="py-8 flex flex-col sm:flex-row justify-between items-center gap-4">
@@ -173,7 +194,6 @@ const HomePage = () => {
                                         >
                                             {currentTopics.map((topic) => (
                                                 <motion.div key={topic._id} variants={cardVariants}>
-                                                    {/* ✅ 4. Kirim seluruh objek 'topic' ke handler */}
                                                     <TopicCard
                                                         title={topic.topicName}
                                                         imageUrl={`http://localhost:5000${topic.topicImagePath}`}
@@ -200,7 +220,6 @@ const HomePage = () => {
                 )}
             </div>
             
-            {/* ✅ 5. Render modal di sini */}
             <InfoModal 
                 isOpen={infoModal.isOpen}
                 onClose={() => setInfoModal({ isOpen: false, title: '', message: '' })}

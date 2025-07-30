@@ -1,7 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { motion, AnimatePresence } from 'framer-motion';
+
+// ✅ Impor modal untuk audio
+import AudioProgressModal from '../components/ui/AudioProgressModal';
 
 import KosakataCard from '../components/ui/KosakataCard';
 import PageHeader from '../components/ui/PageHeader';
@@ -67,9 +70,11 @@ const ENTRIES_PER_PAGE = 12;
 const KosakataPage = () => {
     const { topicId } = useParams();
     const { t, i18n } = useTranslation();
+    const navigate = useNavigate();
     const isDesktop = useMediaQuery('(min-width: 1024px)');
     const pageTopRef = useRef(null);
     const activeCardRef = useRef(null);
+    const audioRef = useRef(null);
 
     const [topicInfo, setTopicInfo] = useState(null);
     const [entries, setEntries] = useState([]);
@@ -79,7 +84,7 @@ const KosakataPage = () => {
     const [searchTerm, setSearchTerm] = useState('');
     const [currentPage, setCurrentPage] = useState(1);
     const [isAudioPlaying, setIsAudioPlaying] = useState(false);
-    const audioRef = useRef(null);
+    const [isClosing, setIsClosing] = useState(false);
 
     useEffect(() => {
         const fetchData = async () => {
@@ -110,6 +115,43 @@ const KosakataPage = () => {
 
         fetchData();
     }, [topicId]);
+
+    // ✅ FUNGSI BARU: Logika audio closing di-handle di sini
+    const handleBackClick = (e) => {
+        e.preventDefault();
+        // Mencegah klik ganda saat transisi atau audio sedang berjalan
+        if (isClosing || isAudioPlaying) return;
+
+        setIsClosing(true);
+
+        // Memilih salah satu dari dua varian audio closing agar tidak monoton.
+        const closingSounds = [
+            '/assets/audio/system/closing-1.wav',
+            '/assets/audio/system/closing-2.wav',
+        ];
+        const randomSoundPath = closingSounds[Math.floor(Math.random() * closingSounds.length)];
+        const audio = new Audio(randomSoundPath);
+
+        // Fungsi untuk navigasi, dipanggil saat audio selesai atau error
+        const navigateHome = () => {
+            navigate('/home');
+        };
+
+        // Menambahkan event listener untuk menunggu audio selesai, lalu navigasi.
+        audio.addEventListener('ended', navigateHome);
+        
+        // Penanganan jika audio gagal diputar
+        audio.addEventListener('error', () => {
+            console.error("Gagal memutar audio closing.");
+            navigateHome(); // Langsung navigasi jika ada error
+        });
+
+        // Memutar audio, dan menangani jika promise play() di-reject
+        audio.play().catch(error => {
+            console.error("Gagal memulai audio closing:", error);
+            navigateHome(); // Langsung navigasi jika ada error
+        });
+    };
 
     const findVocab = (entry, lang) => {
         if (!entry || !entry.entryVocabularies) return null;
@@ -145,7 +187,7 @@ const KosakataPage = () => {
     };
 
     const handleCardClick = (entry) => {
-        if (isAudioPlaying) return;
+        if (isAudioPlaying || isClosing) return;
         setActiveEntry(entry);
         
         const audioUrl = findVocab(entry, i18n.language)?.audioUrl;
@@ -176,7 +218,6 @@ const KosakataPage = () => {
 
     const entriesToDisplay = isDesktop ? filteredEntries : paginatedEntries;
 
-    // ✅ 1. Logika kuis dinonaktifkan jika kosakata < 5
     const isQuizDisabled = !entries || entries.length < 5;
 
     if (isLoading) {
@@ -231,131 +272,132 @@ const KosakataPage = () => {
     };
 
     return (
-        <motion.div
-            initial="initial"
-            animate="in"
-            exit="out"
-            variants={pageVariants}
-            transition={pageTransition}
-            ref={pageTopRef}
-        >
-            <div className="sticky top-0 z-20 bg-background pt-4 pb-4 border-b border-gray-200 dark:border-gray-700/50">
-                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                    <div className="flex flex-col gap-4">
-                        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                            <PageHeader 
-                                title={getTranslatedTopicName()}
-                                visitCount={topicInfo?.visitCount}
-                            />
-                            <div className='flex items-center gap-4 w-full sm:w-auto'>
-                                <Link 
-                                    to={isQuizDisabled ? '#' : `/quiz/${topicId}`}
-                                    onClick={(e) => isQuizDisabled && e.preventDefault()}
-                                    className={`flex-1 text-center font-bold px-4 py-2 rounded-lg text-sm transition-opacity ${
-                                        isQuizDisabled 
-                                            ? 'bg-gray-300 text-gray-500 cursor-not-allowed' 
-                                            : 'bg-primary text-white hover:opacity-90'
-                                    }`}
-                                    title={isQuizDisabled ? "Kuis membutuhkan minimal 5 kosakata" : "Mulai Kuis"}
-                                >
-                                    {t('quizButton')}
-                                </Link>
-                                <Link to="/home" className="flex-1 items-center justify-center gap-2 bg-background-secondary text-text-secondary font-bold px-4 py-2 rounded-lg text-sm hover:bg-gray-200 dark:hover:bg-gray-700 whitespace-nowrap hidden sm:flex">
-                                    <span>←</span>
-                                    <span>{t("backButton")}</span>
-                                </Link>
-                                <Link to="/home" className="flex-1 text-center bg-background-secondary text-text-secondary font-bold px-4 py-2 rounded-lg text-sm hover:bg-gray-200 dark:hover:bg-gray-700 sm:hidden">
-                                    ← {t("backButton")}
-                                </Link>
+        <>
+            <AudioProgressModal isOpen={isClosing} message="Sampai ketemu lagi!" />
+            
+            <motion.div
+                initial="initial"
+                animate="in"
+                exit="out"
+                variants={pageVariants}
+                transition={pageTransition}
+                ref={pageTopRef}
+            >
+                <div className="sticky top-0 z-20 bg-background pt-4 pb-4 border-b border-gray-200 dark:border-gray-700/50">
+                    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                        <div className="flex flex-col gap-4">
+                            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                                <PageHeader 
+                                    title={getTranslatedTopicName()}
+                                    visitCount={topicInfo?.visitCount}
+                                />
+                                <div className='flex items-center gap-4 w-full sm:w-auto'>
+                                    <Link 
+                                        to={isQuizDisabled ? '#' : `/quiz/${topicId}`}
+                                        onClick={(e) => {
+                                            if (isQuizDisabled || isClosing) e.preventDefault();
+                                        }}
+                                        className={`flex-1 text-center font-bold px-4 py-2 rounded-lg text-sm transition-opacity ${
+                                            isQuizDisabled 
+                                                ? 'bg-gray-300 text-gray-500 cursor-not-allowed' 
+                                                : 'bg-primary text-white hover:opacity-90'
+                                        }`}
+                                        title={isQuizDisabled ? "Kuis membutuhkan minimal 5 kosakata" : "Mulai Kuis"}
+                                    >
+                                        {t('quizButton')}
+                                    </Link>
+                                    <button onClick={handleBackClick} className="flex-1 items-center justify-center gap-2 bg-background-secondary text-text-secondary font-bold px-4 py-2 rounded-lg text-sm hover:bg-gray-200 dark:hover:bg-gray-700 whitespace-nowrap flex">
+                                        <span>←</span>
+                                        <span>{t("backButton")}</span>
+                                    </button>
+                                </div>
                             </div>
-                        </div>
-                        
-                        <div className="relative w-full sm:max-w-xs sm:self-end">
-                            <span className="absolute inset-y-0 left-0 flex items-center pl-3">
-                                <SearchIcon />
-                            </span>
-                            <input
-                                type="text"
-                                placeholder="Cari kosakata..."
-                                value={searchTerm}
-                                onChange={(e) => setSearchTerm(e.target.value)}
-                                className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm bg-background-secondary text-text focus:ring-1 focus:ring-primary focus:border-primary shadow-sm"
-                            />
+                            
+                            <div className="relative w-full sm:max-w-xs sm:self-end">
+                                <span className="absolute inset-y-0 left-0 flex items-center pl-3">
+                                    <SearchIcon />
+                                </span>
+                                <input
+                                    type="text"
+                                    placeholder="Cari kosakata..."
+                                    value={searchTerm}
+                                    onChange={(e) => setSearchTerm(e.target.value)}
+                                    className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm bg-background-secondary text-text focus:ring-1 focus:ring-primary focus:border-primary shadow-sm"
+                                />
+                            </div>
                         </div>
                     </div>
                 </div>
-            </div>
-            
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-16 mt-8">
-                {error && <p className="text-center text-red-500">{error}</p>}
-
-                {!error && !isLoading && entries.length === 0 && (
-                    <div className="text-center py-20">
-                        <p className="text-xl text-gray-500">Kosakata belum tersedia, ditunggu yah {'>'}.{'<'}</p>
-                    </div>
-                )}
                 
-                {!error && entries.length > 0 && (
-                    <div className="lg:grid lg:grid-cols-3 lg:gap-8">
-                        {isDesktop && (
-                            <div className="lg:col-span-1">
-                                <div className="lg:sticky lg:top-40 z-10">
-                                    <DetailPanel />
-                                </div>
-                            </div>
-                        )}
-                        
-                        {/* ✅ 2. Kolom ini sekarang mengambil lebar penuh di semua ukuran layar */}
-                        <div className={isDesktop ? "lg:col-span-2" : "w-full"}>
-                            {/* ✅ 3. Panel detail TIDAK LAGI dirender di mobile */}
-                            {entriesToDisplay.length > 0 ? (
-                                <AnimatePresence mode="wait">
-                                    <motion.div
-                                        key={currentPage}
-                                        variants={containerVariants}
-                                        initial="hidden"
-                                        animate="visible"
-                                        className="grid grid-cols-2 sm:grid-cols-3 gap-4"
-                                    >
-                                        {entriesToDisplay.map((entry) => {
-                                            const currentVocab = findVocab(entry, i18n.language);
-                                            if (!currentVocab) return null;
+                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-16 mt-8">
+                    {error && <p className="text-center text-red-500">{error}</p>}
 
-                                            return (
-                                                <motion.div key={entry._id} variants={cardVariants}>
-                                                    <KosakataCard 
-                                                        content={currentVocab.vocab}
-                                                        imageUrl={`http://localhost:5000${entry.entryImagePath.replace(/\\/g, '/')}`}
-                                                        isActive={activeEntry && activeEntry._id === entry._id}
-                                                        isPlaying={isAudioPlaying && activeEntry?._id === entry._id}
-                                                        isAnyAudioPlaying={isAudioPlaying}
-                                                        onCardClick={() => handleCardClick(entry)}
-                                                    />
-                                                </motion.div>
-                                            );
-                                        })}
-                                    </motion.div>
-                                </AnimatePresence>
-                            ) : (
-                                <div className="text-center py-20">
-                                    <p className="text-xl text-gray-500">Kosakata yang Anda cari tidak ditemukan.</p>
-                                </div>
-                            )}
-                            {!isDesktop && (
-                                <div className="mt-12 pt-8">
-                                    <Pagination
-                                        currentPage={currentPage}
-                                        totalPages={totalPages}
-                                        onPageChange={handlePageChange}
-                                        totalItems={filteredEntries.length}
-                                    />
-                                </div>
-                            )}
+                    {!error && !isLoading && entries.length === 0 && (
+                        <div className="text-center py-20">
+                            <p className="text-xl text-gray-500">Kosakata belum tersedia, ditunggu yah {'>'}.{'<'}</p>
                         </div>
-                    </div>
-                )}
-            </div>
-        </motion.div>
+                    )}
+                    
+                    {!error && entries.length > 0 && (
+                        <div className="lg:grid lg:grid-cols-3 lg:gap-8">
+                            {isDesktop && (
+                                <div className="lg:col-span-1">
+                                    <div className="lg:sticky lg:top-40 z-10">
+                                        <DetailPanel />
+                                    </div>
+                                </div>
+                            )}
+                            
+                            <div className={isDesktop ? "lg:col-span-2" : "w-full"}>
+                                {entriesToDisplay.length > 0 ? (
+                                    <AnimatePresence mode="wait">
+                                        <motion.div
+                                            key={currentPage}
+                                            variants={containerVariants}
+                                            initial="hidden"
+                                            animate="visible"
+                                            className="grid grid-cols-2 sm:grid-cols-3 gap-4"
+                                        >
+                                            {entriesToDisplay.map((entry) => {
+                                                const currentVocab = findVocab(entry, i18n.language);
+                                                if (!currentVocab) return null;
+
+                                                return (
+                                                    <motion.div key={entry._id} variants={cardVariants}>
+                                                        <KosakataCard 
+                                                            content={currentVocab.vocab}
+                                                            imageUrl={`http://localhost:5000${entry.entryImagePath.replace(/\\/g, '/')}`}
+                                                            isActive={activeEntry && activeEntry._id === entry._id}
+                                                            isPlaying={isAudioPlaying && activeEntry?._id === entry._id}
+                                                            isAnyAudioPlaying={isAudioPlaying}
+                                                            onCardClick={() => handleCardClick(entry)}
+                                                        />
+                                                    </motion.div>
+                                                );
+                                            })}
+                                        </motion.div>
+                                    </AnimatePresence>
+                                ) : (
+                                    <div className="text-center py-20">
+                                        <p className="text-xl text-gray-500">Kosakata yang Anda cari tidak ditemukan.</p>
+                                    </div>
+                                )}
+                                {!isDesktop && (
+                                    <div className="mt-12 pt-8">
+                                        <Pagination
+                                            currentPage={currentPage}
+                                            totalPages={totalPages}
+                                            onPageChange={handlePageChange}
+                                            totalItems={filteredEntries.length}
+                                        />
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    )}
+                </div>
+            </motion.div>
+        </>
     );
 };
 

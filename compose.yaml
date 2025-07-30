@@ -1,0 +1,49 @@
+# compose.yaml (Final & Stabil)
+
+services:
+  service:
+    build: ./service
+    container_name: service-api
+    ports:
+      - "5000:5000"
+    volumes:
+      - ./service/public/uploads:/app/public/uploads
+    env_file:
+      - ./service/.env
+    environment:
+      # Gunakan nama service 'database' dan pastikan menyertakan replicaSet
+      - ATLAS_URI=mongodb://database:27017/KangAgam-DB?replicaSet=rs0
+    depends_on:
+      database:
+        condition: service_healthy # <-- Backend BARU akan dimulai SETELAH database 'healthy'
+
+  client:
+    build: ./client
+    container_name: client-web
+    ports:
+      - "3000:80"
+    depends_on:
+      - service
+
+  database:
+    image: mongo:latest
+    container_name: mongodb
+    ports:
+      - "27017:27017"
+    volumes:
+      # We still mount the seed directory for the script to use
+      - ./seed:/docker-entrypoint-initdb.d
+      # We now also mount our new startup script
+      - ./init-mongo.sh:/usr/local/bin/init-mongo.sh
+    # We COMPLETELY REPLACE the old 'command' with this new one
+    command: /usr/local/bin/init-mongo.sh
+    healthcheck:
+      test: |
+        mongosh --host database --eval "quit(db.isMaster().ismaster ? 0 : 1)"
+      interval: 10s
+      timeout: 10s
+      retries: 5
+      start_period: 20s
+
+volumes:
+  mongodb_data:

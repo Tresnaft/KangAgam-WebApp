@@ -5,10 +5,11 @@ import axios from 'axios';
 import Select from 'react-select';
 
 const logo = '/assets/images/logo-kang-agam.png';
+const logoBalaiBahasa = '/assets/images/logo/tut-wuri-handayani.svg';
 
 const OnboardingPage = () => {
     const navigate = useNavigate();
-    const { user, login } = useAuth();
+    const { login } = useAuth();
     
     const [formData, setFormData] = useState({
         namaLengkap: '',
@@ -39,12 +40,6 @@ const OnboardingPage = () => {
         };
         fetchCities();
     }, []);
-
-    useEffect(() => {
-        if (user && user.role === 'user') {
-            navigate('/home', { replace: true });
-        }
-    }, [user, navigate]);
 
     const handleChange = (e) => {
         setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -128,7 +123,17 @@ const OnboardingPage = () => {
                         <p className="text-gray-700 mt-4">Kamus Daring Audio Bergambar Tiga Bahasa</p>
                         <p className="text-sm text-gray-500">Indonesia / Sunda / Inggris</p>
                     </div>
-                    <p className="text-xs text-gray-500 mt-auto">Balai Bahasa Provinsi Jawa Barat</p>
+                    
+                    {/* ✅ PERUBAHAN: Menyesuaikan teks Balai Bahasa */}
+                    <div className="flex items-center justify-center md:justify-start gap-4 mt-auto">
+                        <img src={logoBalaiBahasa} alt="Logo Balai Bahasa" className="h-16" />
+                        <div className="text-left">
+                            <p className="text-lg font-bold text-gray-800 leading-tight">BALAI BAHASA</p>
+                            <p className="text-sm font-semibold text-gray-700 leading-tight">PROVINSI JAWA BARAT</p>
+                            <p className="text-xs text-gray-500 leading-tight mt-1">BADAN PENGEMBANGAN DAN PEMBINAAN BAHASA</p>
+                            <p className="text-xs text-gray-500 leading-tight">Kementerian Pendidikan Dasar dan Menengah</p>
+                        </div>
+                    </div>
                 </div>
                 <div className="bg-white p-8 sm:p-10 rounded-2xl shadow-lg w-full max-w-md">
                     <h2 className="text-2xl font-bold text-gray-800 mb-3">Data Diri</h2>
@@ -142,7 +147,6 @@ const OnboardingPage = () => {
                     <form onSubmit={handleSubmit} className="space-y-5">
                         <div>
                             <label htmlFor="namaLengkap" className="block text-sm font-medium text-gray-600 mb-1">Nama Lengkap</label>
-                            {/* ✅ PERUBAHAN: Menghapus atribut 'required' */}
                             <input type="text" name="namaLengkap" value={formData.namaLengkap} onChange={handleChange} className={`w-full px-4 py-2.5 border rounded-lg ${errors.namaLengkap ? 'border-red-500' : 'border-gray-300'}`} />
                             {errors.namaLengkap && <p className="text-red-500 text-xs mt-1">{errors.namaLengkap}</p>}
                         </div>
@@ -189,7 +193,7 @@ const OnboardingPage = () => {
                             />
                             {errors.asalDomisili && <p className="text-red-500 text-xs mt-1">{errors.asalDomisili}</p>}
                         </div>
-                        <button type="submit" disabled={isSubmitting} className="w-full bg-[#8DA2FB] text-white font-bold py-3 px-4 rounded-lg hover:bg-[#788DE5]">
+                        <button type="submit" disabled={isSubmitting} className="w-full bg-[#8DA2FB] text-white font-bold py-3 px-4 rounded-lg hover:bg-[#788DE5] transition-colors">
                             {isSubmitting ? 'Memproses...' : 'Masuk'}
                         </button>
                     </form>

@@ -118,7 +118,7 @@ const AdminFormModal = ({ isOpen, onClose, onSubmit, isSubmitting, mode, initial
                                 </div>
                                 <div>
                                     <label htmlFor="adminEmail" className="block text-sm font-medium text-gray-600 mb-1">
-                                        E-Mail
+                                        Posel
                                     </label>
                                     <input
                                         type="email"
@@ -132,7 +132,7 @@ const AdminFormModal = ({ isOpen, onClose, onSubmit, isSubmitting, mode, initial
                                 </div>
                                 <div>
                                     <label htmlFor="role" className="block text-sm font-medium text-gray-600 mb-1">
-                                        Role
+                                        Peran
                                     </label>
                                     <select
                                         id="role"

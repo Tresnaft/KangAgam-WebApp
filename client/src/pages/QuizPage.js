@@ -15,7 +15,7 @@ const ExclamationIcon = () => ( <svg className="w-16 h-16 text-yellow-500" fill=
 const QuizFeedbackPopup = ({ isOpen, type }) => {
     const content = {
         correct: { icon: <CheckIcon />, text: "Hebat!", bgColor: "bg-green-100 dark:bg-green-900/50" },
-        incorrect: { icon: <ExclamationIcon />, text: "Coba Lagi, Ya!", bgColor: "bg-yellow-100 dark:bg-yellow-900/50" },
+        incorrect: { icon: <ExclamationIcon />, text: "Coba lagi, ya!", bgColor: "bg-yellow-100 dark:bg-yellow-900/50" },
     };
     const selectedContent = content[type] || content.correct;
 
@@ -200,7 +200,7 @@ const QuizPage = () => {
             <div className="flex-grow flex items-center justify-center max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full">
                 {quizState === 'playing' && currentQuestion && (
                     <div className="w-full max-w-4xl mx-auto flex flex-col items-center">
-                        <h3 className="text-2xl font-semibold text-text-secondary text-center">Dengarkan Pertanyaan melalui audio ini</h3>
+                        <h3 className="text-2xl font-semibold text-text-secondary text-center">Dengarkan pertanyaan melalui audio ini</h3>
                         <motion.button whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }} onClick={() => playQuestionAudio(questionAudio)} className="my-6 w-32 h-32 bg-accent/20 text-accent rounded-2xl flex items-center justify-center text-5xl shadow-lg">🔊</motion.button>
                         <div className="flex justify-center items-center gap-4">
                             <p className="font-bold text-text">Nilai Kamu</p>

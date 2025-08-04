@@ -13,7 +13,6 @@ const PlayIcon = () => (
     </svg>
 );
 
-// Struktur data untuk satu section kosakata baru
 const createNewEntrySection = () => ({
     id: Date.now() + Math.random(),
     entryImage: null,
@@ -27,7 +26,6 @@ const createNewEntrySection = () => ({
 });
 
 const WordFormModal = ({ isOpen, onClose, onSubmit, mode, initialData }) => {
-    // State utama sekarang adalah array of entries
     const [entries, setEntries] = useState([createNewEntrySection()]);
     const audioPlayer = useRef(null);
 
@@ -60,7 +58,6 @@ const WordFormModal = ({ isOpen, onClose, onSubmit, mode, initialData }) => {
                 audioPlayer.current.pause();
                 audioPlayer.current = null;
             }
-            // Membersihkan preview URL untuk mencegah memory leak
             entries.forEach(entry => {
                 if (entry.imagePreview && entry.imagePreview.startsWith('blob:')) {
                     URL.revokeObjectURL(entry.imagePreview);
@@ -69,13 +66,8 @@ const WordFormModal = ({ isOpen, onClose, onSubmit, mode, initialData }) => {
         }
     }, [isOpen, mode, initialData]);
 
-    const handleAddEntrySection = () => {
-        setEntries(prev => [...prev, createNewEntrySection()]);
-    };
-
-    const handleRemoveEntrySection = (entryId) => {
-        setEntries(prev => prev.filter(entry => entry.id !== entryId));
-    };
+    const handleAddEntrySection = () => setEntries(prev => [...prev, createNewEntrySection()]);
+    const handleRemoveEntrySection = (entryId) => setEntries(prev => prev.filter(entry => entry.id !== entryId));
 
     const handleVocabChange = (entryId, vocabIndex, field, value) => {
         setEntries(prevEntries =>
@@ -129,6 +121,13 @@ const WordFormModal = ({ isOpen, onClose, onSubmit, mode, initialData }) => {
                 newErrors.vocabularies = 'Minimal satu kosakata harus diisi.';
                 allIsValid = false;
             }
+            // Validasi audio untuk setiap kosakata yang diisi
+            entry.vocabularies.forEach((v, index) => {
+                if(v.vocab.trim() !== '' && !v.audioFile && !v.existingAudioUrl) {
+                    newErrors[`audio_${index}`] = 'Audio wajib diisi untuk kosakata ini.';
+                    allIsValid = false;
+                }
+            });
             return { ...entry, errors: newErrors };
         });
         setEntries(validatedEntries);
@@ -141,9 +140,7 @@ const WordFormModal = ({ isOpen, onClose, onSubmit, mode, initialData }) => {
 
         const allFormData = entries.map(entry => {
             const formData = new FormData();
-            if (entry.entryImage) {
-                formData.append('entryImage', entry.entryImage);
-            }
+            if (entry.entryImage) formData.append('entryImage', entry.entryImage);
 
             const filledVocabs = entry.vocabularies.filter(v => v.vocab.trim() !== '' || v.audioFile);
             const audioFiles = [];
@@ -161,12 +158,7 @@ const WordFormModal = ({ isOpen, onClose, onSubmit, mode, initialData }) => {
             
             formData.append('entryData', JSON.stringify(entryData));
             audioFiles.forEach(file => formData.append('audioFiles', file));
-
-            // Jika mode edit, sertakan ID entri
-            if (mode === 'edit') {
-                formData.append('entryId', entry.id);
-            }
-
+            if (mode === 'edit') formData.append('entryId', entry.id);
             return formData;
         });
 
@@ -193,7 +185,6 @@ const WordFormModal = ({ isOpen, onClose, onSubmit, mode, initialData }) => {
                                 <h2 className="text-xl font-bold text-text">{mode === 'edit' ? 'Edit Kosakata' : 'Tambah Kosakata'}</h2>
                                 <button type="button" onClick={onClose} className="p-1 rounded-full hover:bg-background"><CloseIcon /></button>
                             </header>
-
                             <main className="p-4 space-y-6 max-h-[75vh] overflow-y-auto">
                                 {entries.map((entry, index) => (
                                     <div key={entry.id} className="p-4 bg-background rounded-xl border border-gray-200 dark:border-gray-700 space-y-4 relative">
@@ -228,6 +219,7 @@ const WordFormModal = ({ isOpen, onClose, onSubmit, mode, initialData }) => {
                                                             </div>
                                                         )}
                                                         <input type="file" accept="audio/*" onChange={(e) => handleVocabChange(entry.id, vocIndex, 'audioFile', e.target.files[0])} className="w-full text-sm text-text-secondary file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-500/10 file:text-blue-600 hover:file:bg-blue-500/20"/>
+                                                        {entry.errors[`audio_${vocIndex}`] && <p className="text-red-500 text-xs mt-1">{entry.errors[`audio_${vocIndex}`]}</p>}
                                                     </div>
                                                 </div>
                                             ))}
@@ -243,7 +235,6 @@ const WordFormModal = ({ isOpen, onClose, onSubmit, mode, initialData }) => {
                                     </button>
                                 )}
                             </main>
-
                             <footer className="flex-shrink-0 p-4 bg-background rounded-b-2xl border-t border-background">
                                 <button type="submit" className="w-full bg-primary text-white font-bold py-3 px-4 rounded-lg hover:opacity-90">
                                     {mode === 'edit' ? 'Simpan Perubahan' : `Tambah ${entries.length} Kosakata`}

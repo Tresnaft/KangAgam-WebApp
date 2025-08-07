@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const API_URL = `${REACT_APP_BACKEND_BASEURL}/api`||'http://localhost:5000/api';
+const API_URL = `${process.env.REACT_APP_API_URL}/api`||'http://localhost:5000/api';
 
 // Fungsi ini tidak perlu token karena bersifat publik
 export const getTopics = async (language = 'id') => {

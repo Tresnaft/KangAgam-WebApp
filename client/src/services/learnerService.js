@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const API_URL = `${REACT_APP_BACKEND_BASEURL}/api/learners`||'http://localhost:5000/api/learners';
+const API_URL = `${process.env.REACT_APP_API_URL}/api/learners`||'http://localhost:5000/api/learners';
 
 /**
  * Mengambil semua data pengguna (learner) dari server.

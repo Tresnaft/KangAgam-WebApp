@@ -196,7 +196,7 @@ const HomePage = () => {
                                                 <motion.div key={topic._id} variants={cardVariants}>
                                                     <TopicCard
                                                         title={topic.topicName}
-                                                        imageUrl={`http://localhost:5000${topic.topicImagePath}`}
+                                                        imageUrl={`${process.env.REACT_APP_API_URL}${topic.topicImagePath}`}
                                                         onClick={() => handleTopicClick(topic)}
                                                         visitCount={topic.visitCount}
                                                     />

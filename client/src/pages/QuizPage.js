@@ -66,7 +66,7 @@ const QuizPage = () => {
     const playQuestionAudio = useCallback((audioUrl) => {
         if (!audioUrl) return;
         if (audioRef.current) audioRef.current.pause();
-        const audio = new Audio(`http://localhost:5000${audioUrl}`);
+        const audio = new Audio(`${process.env.REACT_APP_API_URL}${audioUrl}`);
         audioRef.current = audio;
         audio.play().catch(e => e.name !== 'AbortError' && console.error(e));
     }, []);
@@ -212,7 +212,7 @@ const QuizPage = () => {
                             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 sm:gap-6">
                                 {options.map(opt => (
                                     <motion.div key={opt._id} onClick={() => handleAnswerClick(opt)} className={`relative aspect-square bg-background-secondary rounded-2xl overflow-hidden shadow-md cursor-pointer border-4 transition-all duration-300 ${feedback.show && feedback.selectedId === opt._id ? (feedback.correct ? 'border-secondary scale-105' : 'border-red-500') : 'border-transparent'}`}>
-                                        <img src={`http://localhost:5000${opt.entryImagePath}`} className="w-full h-full object-cover" alt="Pilihan Jawaban" />
+                                        <img src={`${process.env.REACT_APP_API_URL}${opt.entryImagePath}`} className="w-full h-full object-cover" alt="Pilihan Jawaban" />
                                     </motion.div>
                                 ))}
                             </div>

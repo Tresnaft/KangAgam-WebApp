@@ -40,7 +40,7 @@ const AudioPlayerModal = ({ entry, onClose }) => {
             setNowPlaying(null);
         }
 
-        const audioUrl = `http://localhost:5000${vocab.audioUrl}`;
+        const audioUrl = `${process.env.REACT_APP_API_URL}${vocab.audioUrl}`;
         if (!vocab.audioUrl || vocab.audioUrl.endsWith('#')) {
             alert('Audio untuk bahasa ini tidak tersedia.');
             return;

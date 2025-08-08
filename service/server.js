@@ -28,8 +28,7 @@ const app = express();
 const server = http.createServer(app);
 const io = new Server(server, {
   cors: {
-    origin: "https://lemon-beach-0c2af0100.1.azurestaticapps.net/",
-    methods: ["GET", "POST", "PUT", "DELETE"]
+    origin: "https://lemon-beach-0c2af0100.1.azurestaticapps.net/"
   }
 });
 

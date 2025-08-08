@@ -1,0 +1,39 @@
+name: Deploy Backend to Azure App Service
+
+on:
+  push:
+    branches:
+      - 'Deploy-test' # Menjalankan workflow saat ada push ke branch Deploy-test
+    paths:
+      - 'server/**'   # Hanya jika ada perubahan di dalam folder 'server/'
+
+  workflow_dispatch: # Memungkinkan Anda menjalankan workflow ini secara manual dari halaman Actions
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    
+    # Menetapkan direktori kerja default untuk semua perintah 'run'
+    defaults:
+      run:
+        working-directory: ./server
+
+    steps:
+      - name: 'Checkout Repository'
+        uses: actions/checkout@v4
+
+      - name: 'Setup Node.js version 22'
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22.x'
+
+      - name: 'Install Backend Dependencies'
+        # Perintah ini akan otomatis berjalan di dalam './server' karena pengaturan 'defaults'
+        run: npm install
+
+      - name: 'Deploy to Azure Web App'
+        uses: azure/webapps-deploy@v3
+        with:
+          app-name: 'kangagam'
+          publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE }}
+          package: ./server # Hanya folder './server' yang dikirim ke Azure

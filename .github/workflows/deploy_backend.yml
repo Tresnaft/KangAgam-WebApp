@@ -16,7 +16,7 @@ jobs:
     # Menetapkan direktori kerja default untuk semua perintah 'run'
     defaults:
       run:
-        working-directory: server
+        working-directory: service
 
     steps:
       - name: 'Checkout Repository'

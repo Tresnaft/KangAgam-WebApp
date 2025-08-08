@@ -1,30 +1,39 @@
-name: Build and Deploy Node.js App
+name: Deploy Backend to Azure App Service
 
 on:
   push:
     branches:
       - main
+    paths:
+      - 'server/**'  # <-- PENTING: Workflow ini hanya berjalan jika ada perubahan di dalam folder 'server/'
+
   workflow_dispatch:
 
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
+    
+    # Menetapkan direktori kerja default untuk semua perintah 'run'
+    defaults:
+      run:
+        working-directory: ./server
+
     steps:
-      - name: Checkout repository
+      - name: 'Checkout Repository'
         uses: actions/checkout@v4
 
-      - name: Setup Node.js
+      - name: 'Setup Node.js version 22'
         uses: actions/setup-node@v4
         with:
-          node-version: '22.x' # Atau sesuaikan dengan versi Node.js Anda
+          node-version: '22.x'
 
-      - name: Install dependencies
+      - name: 'Install Backend Dependencies'
+        # Perintah ini akan otomatis berjalan di dalam './server' karena pengaturan 'defaults' di atas
         run: npm install
 
-      - name: Deploy to Azure Web App
-        id: deploy-to-webapp
+      - name: 'Deploy to Azure Web App'
         uses: azure/webapps-deploy@v3
         with:
           app-name: 'kangagam'
-          publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE }} # Pastikan secret ini ada di pengaturan repositori GitHub Anda
-          package: .
+          publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE }}
+          package: ./server # <-- KUNCI UTAMA: Hanya folder './server' yang di-zip dan dikirim ke Azure

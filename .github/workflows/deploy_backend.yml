@@ -5,7 +5,7 @@ on:
     branches:
       - 'Deploy-test' # Menjalankan workflow saat ada push ke branch Deploy-test
     paths:
-      - 'server/**'   # Hanya jika ada perubahan di dalam folder 'server/'
+      - 'service/**'   # Hanya jika ada perubahan di dalam folder 'server/'
 
   workflow_dispatch: # Memungkinkan Anda menjalankan workflow ini secara manual dari halaman Actions
 
@@ -16,7 +16,7 @@ jobs:
     # Menetapkan direktori kerja default untuk semua perintah 'run'
     defaults:
       run:
-        working-directory: server
+        working-directory: service
 
     steps:
       - name: 'Checkout Repository'
@@ -36,4 +36,4 @@ jobs:
         with:
           app-name: 'kangagam'
           publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE }}
-          package: ./server # Hanya folder './server' yang dikirim ke Azure
+          package: ./service # Hanya folder './server' yang dikirim ke Azure

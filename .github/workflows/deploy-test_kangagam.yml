@@ -3,11 +3,11 @@ name: Deploy Backend to Azure App Service
 on:
   push:
     branches:
-      - Deploy-test
+      - 'Deploy-test' # Menjalankan workflow saat ada push ke branch Deploy-test
     paths:
-      - 'server/**'  # <-- PENTING: Workflow ini hanya berjalan jika ada perubahan di dalam folder 'server/'
+      - 'server/**'   # Hanya jika ada perubahan di dalam folder 'server/'
 
-  workflow_dispatch:
+  workflow_dispatch: # Memungkinkan Anda menjalankan workflow ini secara manual dari halaman Actions
 
 jobs:
   build-and-deploy:
@@ -28,7 +28,7 @@ jobs:
           node-version: '22.x'
 
       - name: 'Install Backend Dependencies'
-        # Perintah ini akan otomatis berjalan di dalam './server' karena pengaturan 'defaults' di atas
+        # Perintah ini akan otomatis berjalan di dalam './server' karena pengaturan 'defaults'
         run: npm install
 
       - name: 'Deploy to Azure Web App'
@@ -36,5 +36,4 @@ jobs:
         with:
           app-name: 'kangagam'
           publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE }}
-          package: ./server # <-- KUNCI UTAMA: Hanya folder './server' yang di-zip dan dikirim ke Azure
-
+          package: ./server # Hanya folder './server' yang dikirim ke Azure

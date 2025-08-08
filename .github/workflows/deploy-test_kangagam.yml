@@ -3,7 +3,7 @@ name: Deploy Backend to Azure App Service
 on:
   push:
     branches:
-      - main
+      - Deploy-test
     paths:
       - 'server/**'  # <-- PENTING: Workflow ini hanya berjalan jika ada perubahan di dalam folder 'server/'
 
@@ -37,3 +37,4 @@ jobs:
           app-name: 'kangagam'
           publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE }}
           package: ./server # <-- KUNCI UTAMA: Hanya folder './server' yang di-zip dan dikirim ke Azure
+
